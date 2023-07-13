@@ -1,0 +1,35 @@
+# CI jobs to be run upon the code lands to the main branch or GitHub Action test branches.
+
+name: ci-post-land
+
+on:
+  push:
+    branches: [main, gha-test-*]
+
+jobs:
+  generate-documentation:
+    name: Generate the Book using mdBook and deploy it to gh-page(deploy-gh-page)
+    runs-on: ubuntu-20.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: '0.4.10'
+          # mdbook-version: 'latest'
+
+      - name: install mdbook-katex
+        run: "cargo install mdbook-katex"
+
+      - run: mdbook build book
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./book/book/

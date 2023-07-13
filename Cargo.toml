@@ -1,0 +1,4 @@
+[workspace]
+members = [
+    "1-ip",
+]
