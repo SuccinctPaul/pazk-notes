@@ -5,9 +5,10 @@ mod verify;
 
 use rand_core::{OsRng, RngCore};
 use std::iter;
-use std::iter::Sum;
+use std::iter::{once, Sum};
 
 use crate::prover::Prover;
+use crate::utils::{calculate_hash, ComputeType};
 use crate::verify::Verify;
 
 pub(crate) struct Data {
@@ -33,21 +34,17 @@ fn completeness() {
     println!("received data");
 
     // challenge and response about data
-    let challenge = OsRng.next_u64();
+    let challenge = OsRng.next_u64() % 100;
+    calculate_hash(&data);
     println!("challenge");
     assert_eq!(
-        business.summary + challenge,
-        cloud_provider.summary(challenge)
+        business.summary ,
+        cloud_provider.summary()
     );
     println!("verified data");
 
-    // computation function: f
 
-    fn sum(datas: &Vec<u64>) -> u64 {
-        datas.iter().sum()
-    }
-
-    cloud_provider.compute(sum);
+    cloud_provider.compute(ComputeType::Sum);
 
     // assert_eq!(sum_fn(data), cloud_provider.compute(sum_fn));
     // println!("completeness");

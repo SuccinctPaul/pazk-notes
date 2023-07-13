@@ -1,4 +1,4 @@
-use crate::utils::calculate_hash;
+use crate::utils::{calculate_hash, ComputeType};
 
 #[derive(Default)]
 pub struct Verify {
@@ -10,11 +10,15 @@ impl Verify {
         self.data = data;
     }
 
-    pub(crate) fn summary(&self, challenge: u64) -> u64 {
-        calculate_hash(&self.data) + challenge
+    pub(crate) fn summary(&self) -> u64 {
+        calculate_hash(&self.data)
     }
 
-    pub(crate) fn compute(&self, f: fn(&Vec<u64>) -> u64) -> u64 {
-        f(&self.data)
+    pub(crate) fn compute(&self, compute: ComputeType) -> u64 {
+        match compute {
+            ComputeType::Sum => {
+                self.data.iter().sum()
+            }
+        }
     }
 }

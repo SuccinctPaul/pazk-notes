@@ -21,6 +21,6 @@ impl Prover {
     fn generate_data() -> Vec<u64> {
         let mut rng = OsRng;
         let size = 5 + rng.next_u32() % 15;
-        (0..size).map(|_| rng.next_u64()).collect::<Vec<_>>()
+        (0..size).map(|_| rng.next_u32() as u64).collect::<Vec<_>>()
     }
 }
