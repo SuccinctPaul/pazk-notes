@@ -8,7 +8,6 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-
-pub enum ComputeType{
-    Sum
+pub enum ComputeType {
+    Sum,
 }

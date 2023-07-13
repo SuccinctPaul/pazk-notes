@@ -28,24 +28,59 @@ fn completeness() {
     let mut cloud_provider = Verify::default();
 
     // send & receive data
-    println!("send data");
     let data = business.send();
     cloud_provider.receive(data.clone());
-    println!("received data");
+    println!("received data\n");
 
     // challenge and response about data
     let challenge = OsRng.next_u64() % 100;
     calculate_hash(&data);
-    println!("challenge");
     assert_eq!(
-        business.summary ,
-        cloud_provider.summary()
+        business.summary + challenge,
+        cloud_provider.summary(challenge)
     );
-    println!("verified data");
+    println!("verified equal");
 
+    fn sum(datas: &Vec<u64>) -> u64 {
+        datas.iter().sum()
+    }
 
-    cloud_provider.compute(ComputeType::Sum);
+    assert_eq!(sum(&data), cloud_provider.compute(sum));
+    println!("completeness");
+}
 
-    // assert_eq!(sum_fn(data), cloud_provider.compute(sum_fn));
-    // println!("completeness");
+// Soundness of the IP means that if the cloud returns the wrong output, then the user will reject the answer
+// as invalid with high probability no matter how hard the cloud works to trick the user into accepting the answer as valid.
+#[test]
+fn soundness() {
+    println!("storage datas");
+
+    // init business and clouder provider
+    let mut business = Prover::default();
+    let mut cloud_provider = Verify::default();
+
+    // send & receive data
+    let raw_data = business.send();
+
+    let mut data = raw_data.clone();
+    println!("Add the mess info");
+    data.push(OsRng.next_u64());
+    cloud_provider.receive(data.clone());
+    println!("received datas\n");
+
+    // challenge and response about data
+    let challenge = OsRng.next_u64() % 100;
+    calculate_hash(&data);
+    assert_ne!(
+        business.summary + challenge,
+        cloud_provider.summary(challenge)
+    );
+    println!("verified non equal");
+
+    fn sum(datas: &Vec<u64>) -> u64 {
+        datas.iter().sum()
+    }
+
+    assert_ne!(sum(&raw_data), cloud_provider.compute(sum));
+    println!("Soundness");
 }
