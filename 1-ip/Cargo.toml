@@ -1,0 +1,10 @@
+[package]
+name = "ip"
+version = "0.1.0"
+edition = "2021"
+description = "The interactive proofs case(1.2.1) in chapter 1"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.5"
+rand_core = { version = "0.6.4", default-features = false, features = ["std"] }
