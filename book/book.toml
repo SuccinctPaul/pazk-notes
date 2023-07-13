@@ -1,0 +1,33 @@
+[book]
+title = "zk book notes"
+description = ""
+authors = ["ChengYueJia"]
+language = "zh"
+multilingual = false
+src = "src"
+
+
+[output.katex]
+
+[output.html]
+mathjax-support = true
+curly-quotes = true
+no-section-label = true
+git-repository-url = "https://github.com/ChengYueJia/zk-note"
+git-repository-icon = "fa-github"
+
+[output.html.print]
+page-break = false
+
+[output.html.playground]
+editable = true
+line-numbers = true
+
+[output.html.search]
+limit-results = 20
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 2
+boost-paragraph = 1
+expand = true
+heading-split-level = 2
