@@ -1,6 +1,4 @@
 
-
-
 ## Run it locally
 
 * prepare
@@ -12,5 +10,5 @@ cargo install mdbook-plantuml
 
 * run
 ```rust
-mdbook serve
+mdbook serve -o
 ```

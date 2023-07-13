@@ -6,7 +6,7 @@
 VC refers to cryptographic protocols called interactive proofs (IPs) and arguments that enable a prover to provide a guarantee to a verifier that the prover performed
 a requested computation correctly.
 
-### proof
+## proof
 Proof is anything that convinces someone that a statement is true,
 
 * Traditionally, a proof is a static object that can be easily checked step-by-step for correctness, because each individual step of the proof should
@@ -68,12 +68,14 @@ verifier).
 There are a variety of promising approaches to developing efficient zk-SNARKs, which can be categorized by the type of 
 information-theoretically secure protocol upon which they are based. These include: 
 1. IPs,
-[source impl](../../../1-ip)
 2. MIPs,
 An MIP is like an IP, except that there are multiple provers, and these provers are assumed not to share
 information with each other regarding what challenges they receive from the verifier.
 A common analogy for MIPs is placing two or more criminal suspects in separate rooms before interrogating them, to see if they
 can keep their story straight.
-
 3. PCPs, or more precisely a related notion called interactive oracle proofs(IOPs), which is a hybrid between an IP and a PCP
 4. linear PCPs.
+
+
+## Implement
+* [The interactive proofs case(1.2.1) in chapter 1](../../1-ip)
