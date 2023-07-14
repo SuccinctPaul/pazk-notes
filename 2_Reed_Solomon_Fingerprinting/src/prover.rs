@@ -7,15 +7,15 @@ trait Prover<F: Field> {
     fn hash(&self, f: F) -> F;
 }
 
-impl<F: Field> Prover<F> for Person<F> {
-    fn hash(&self, r: F) -> F {
-        self.data
-            .iter()
-            .enumerate()
-            .map(|i, a| {
-                let r_i = r.pow_vartime(i);
-                r_i.mul(a)
-            })
-            .sum()
-    }
-}
+// impl<F: Field> Prover<F> for Person<F> {
+//     fn hash(&self, r: F) -> F {
+//         self.data
+//             .iter()
+//             .enumerate()
+//             .map(| (i, a)| {
+//                 let r_i = r.pow(F::from(i));
+//                 r_i.mul(a)
+//             })
+//             .sum()
+//     }
+// }
