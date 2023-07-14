@@ -1,9 +1,12 @@
+use crate::prover::Prover;
+/// The Reed-Solomon Fingerprinting case(2.1) in chapter 2
+/// In this case, we'll check whether Alice and Bob has the same file by checking RS-fingerprint.
 use crate::utils::{dump_field_data, read_from_file};
+use crate::verify::Verifier;
 use bls12_381::Scalar;
 use ff::Field;
 use rand_core::{OsRng, RngCore};
 
-/// The Reed-Solomon Fingerprinting case(2.1) in chapter 2
 mod prover;
 mod utils;
 mod verify;
@@ -36,9 +39,14 @@ fn completeness() {
     let Alice = Person::new(file_A);
     let Bob = Person::new(file_A);
 
-    // use the prover trait by alice
+    // Alice RS fingerprint
+    let r = Person::challenge();
+    let fingerprint = Alice.fs_hash(r.clone());
 
-    // assert!();
+    // Bob check it
+    let result = Bob.verify(r, fingerprint);
+
+    assert!(result, "They are not same.");
 }
 
 #[test]
@@ -50,5 +58,12 @@ fn soundness() {
 
     // use the prover trait by alice
 
-    // assert!();
+    // Alice RS fingerprint
+    let r = Person::challenge();
+    let fingerprint = Alice.fs_hash(r.clone());
+
+    // Bob check it
+    let result = Bob.verify(r, fingerprint);
+
+    assert!(!result, "They are same.");
 }
