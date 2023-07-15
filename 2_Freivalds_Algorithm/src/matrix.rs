@@ -1,43 +1,33 @@
-use std::ops::AddAssign;
 use bls12_381::Scalar;
 use ff::Field;
 use rand_core::{OsRng, RngCore};
+use std::ops::AddAssign;
 
 /// This define `matrix` (rows * cols) （m × n）
 #[derive(Debug, Clone)]
 pub struct Matrix {
     rows: usize,
-    cols: usize, // columns
+    cols: usize,
+    // columns
     values: Vec<Vec<Scalar>>,
 }
 
-
 impl Matrix {
-    fn random(rows: usize, cols: usize) -> Self {
-        let values = (0..rows).map(|_| {
-            (0..cols).map(|_| {
-                Scalar::random(OsRng)
-            }).collect::<Vec<_>>()
-        }).collect::<Vec<_>>();
+    pub fn random(rows: usize, cols: usize) -> Self {
+        let values = (0..rows)
+            .map(|_| (0..cols).map(|_| Scalar::random(OsRng)).collect::<Vec<_>>())
+            .collect::<Vec<_>>();
 
-        Self {
-            cols,
-            rows,
-            values,
-        }
+        Self { cols, rows, values }
     }
-    fn index(&self, row_index:usize, colm_index:usize) -> Scalar {
-        assert!(0<= row_index || self.rows>row_index);
-        assert!(0<= colm_index || self.cols>colm_index);
-        *self.values.get(row_index).unwrap().get(colm_index).unwrap()
 
-    }
-    fn get_columns(&self, column_index:usize) -> Vec<Scalar> {
-        assert!(0<= column_index || self.cols>column_index);
+    fn get_columns(&self, column_index: usize) -> Vec<Scalar> {
+        assert!(0 <= column_index || self.cols > column_index);
 
-      self.values.iter().map(|v|{
-          v.get(column_index).unwrap().clone()
-      }).collect::<Vec<_>>()
+        self.values
+            .iter()
+            .map(|v| v.get(column_index).unwrap().clone())
+            .collect::<Vec<_>>()
     }
 
     fn vec_mul(a: &Vec<Scalar>, b: &Vec<Scalar>) -> Scalar {
@@ -52,10 +42,28 @@ impl Matrix {
     }
 
     /// https://en.wikipedia.org/wiki/Dot_product
+    /// Suppose A(m * n), x(n) => A * x = y(n)
+    pub fn matrix_mul_vec(&self, vector: &Vec<Scalar>) -> Vec<Scalar> {
+        assert_eq!(self.cols, vector.len());
+        let n = self.cols;
+
+        let mut result: Vec<Scalar> = Vec::with_capacity(n);
+        for i in 0..self.rows {
+            let row_i = self.values.get(i).unwrap().clone();
+
+            let elem = Self::vec_mul(&row_i, vector);
+
+            result.push(elem);
+        }
+
+        result
+    }
+
+    /// https://en.wikipedia.org/wiki/Dot_product
     /// Suppose A(m * n), B(n, p) => A * B = C(m * p)
-    pub fn matrix_mul(m_a: &Matrix, m_b: &Matrix) -> Self {
-        assert!(m_a.cols> 0 || m_b.rows> 0, "matrix a is empty");
-        assert!(m_b.cols> 0 || m_b.rows> 0, "matrix a is empty");
+    pub fn mul(m_a: &Matrix, m_b: &Matrix) -> Self {
+        assert!(m_a.cols > 0 || m_b.rows > 0, "matrix a is empty");
+        assert!(m_b.cols > 0 || m_b.rows > 0, "matrix a is empty");
         // ma.cols == mb.rows
         assert_eq!(m_a.cols, m_b.rows);
         let m = m_a.rows;
@@ -63,10 +71,8 @@ impl Matrix {
         // let n = m_b.rows;
         let p = m_b.cols;
 
-
-        let mut matrix:Vec<Vec<Scalar>> = Vec::with_capacity(m);
+        let mut matrix: Vec<Vec<Scalar>> = Vec::with_capacity(m);
         for i in 0..m {
-
             let mut new_row = Vec::with_capacity(p);
 
             let row_i = m_a.values.get(i).unwrap().clone();
@@ -80,7 +86,7 @@ impl Matrix {
             matrix.push(new_row);
         }
 
-        Self{
+        Self {
             rows: m,
             cols: p,
             values: matrix,
@@ -88,11 +94,10 @@ impl Matrix {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-    use bls12_381::Scalar;
     use crate::matrix::Matrix;
+    use bls12_381::Scalar;
 
     #[test]
     fn test_random_matrix() {
@@ -101,9 +106,9 @@ mod test {
     }
 
     #[test]
-    fn test_matrix_mul(){
-        let m : usize = 2;
-        let mut values : Vec<Vec<Scalar>> = Vec::with_capacity(m);
+    fn test_matrix_mul() {
+        let m: usize = 2;
+        let mut values: Vec<Vec<Scalar>> = Vec::with_capacity(m);
         let mut row_1: Vec<Scalar> = Vec::with_capacity(m);
         row_1.push(Scalar::one());
         row_1.push(Scalar::zero());
@@ -113,17 +118,40 @@ mod test {
         values.push(row_1);
         values.push(row_2);
 
-        let a = Matrix{
+        let a = Matrix {
             rows: m,
             cols: m,
-            values
+            values,
         };
-        let b= a.clone();
+        let b = a.clone();
 
-
-        let res = Matrix::matrix_mul(&a, &b);
+        let res = Matrix::mul(&a, &b);
         assert_eq!(a.values, res.values);
         println!("{:#?}", res);
+    }
 
+    #[test]
+    fn test_matrix_mul_vec() {
+        let m: usize = 2;
+        let mut values: Vec<Vec<Scalar>> = Vec::with_capacity(m);
+        let mut row_1: Vec<Scalar> = Vec::with_capacity(m);
+        row_1.push(Scalar::one());
+        row_1.push(Scalar::zero());
+        let mut row_2: Vec<Scalar> = Vec::with_capacity(m);
+        row_2.push(Scalar::zero());
+        row_2.push(Scalar::one());
+        values.push(row_1.clone());
+        values.push(row_2);
+
+        let a = Matrix {
+            rows: m,
+            cols: m,
+            values,
+        };
+        let b = a.clone();
+
+        let res = a.matrix_mul_vec(&row_1);
+        assert_eq!(row_1, res);
+        println!("{:#?}", res);
     }
 }
