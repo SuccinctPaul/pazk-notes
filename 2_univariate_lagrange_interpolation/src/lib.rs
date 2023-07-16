@@ -1,0 +1,1 @@
+/// Encode vector into polynomial.
