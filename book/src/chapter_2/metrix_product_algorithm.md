@@ -1,4 +1,19 @@
 
+# Matrix Multiplication
+
+## Traditional Way
+https://en.wikipedia.org/wiki/Matrix_multiplication
+
+
+## Strassen's Way
+
+
+
+## Deepleaning way.
+
+https://www.deepmind.com/blog/discovering-novel-algorithms-with-alphatensor
+
+
 
 Suppose we are given as input two n×n matrices A and B over Fp, where p > n2 is a prime number. Our goal is to compute the product matrix A · B. Asymptotically, the fastest known algorithm for accomplishing this task is very complicated, and runs in time roughly O(n2.37286) [LG14, AW21].
 

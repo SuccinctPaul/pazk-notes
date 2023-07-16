@@ -17,7 +17,17 @@ Let pa(x) = ∑ni=1 ai · xi−1 and similarly pb(x) = ∑ni=1 bi · xi−1. Obs
 
 * reference
   https://zh.wikipedia.org/wiki/%E9%87%8C%E5%BE%B7-%E6%89%80%E7%BD%97%E9%97%A8%E7%A0%81
+  
+  
+  
+## The power of randomness
+In summary, both protocols reduced the task of checking equality of two large objects (the vectors a and b in the fingerprinting protocol,
+and the claimed answer matrix and true answer matrix in Freivalds’ algorithm) to checking equality of just a single random entry of
+distance-amplified encodings of those objects. While deterministically checking equality of the two large objects would be very
+expensive in terms of either communication or computation time, evaluating a single entry of the each object’s encoding can be
+done with only logarithmic communication or in just linear time.
 
 
-
-## Freivalds’ Algorithm
+## Implement
+[Reed-Solomon Fingerprinting](../../../2_Reed_Solomon_Fingerprinting)
+[Freivalds’ Algorithm](../../../2_Freivalds_Algorithm)
