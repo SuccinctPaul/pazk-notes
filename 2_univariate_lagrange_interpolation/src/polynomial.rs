@@ -1,5 +1,6 @@
 use bls12_381::Scalar;
 use ff::BatchInvert;
+use std::iter::Scan;
 
 // p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1)
 //
@@ -38,11 +39,12 @@ impl Polynomial {
                 coeffs: vec![evals[0]],
             }
         } else {
-            let domain_len = domains.len();
+            let poly_size = domains.len();
 
             // 1. divisors = vec(x_j - x_k). prepare for L_j(X)=∏(X−x_k)/(x_j−x_k)
             let mut divisors = Vec::with_capacity(domain_len);
             for (j, x_j) in domains.iter().enumerate() {
+                // divisor_j
                 let mut divisor = Vec::with_capacity(domain_len - 1);
                 // obtain domain for x_k
                 for x_k in domains
@@ -62,15 +64,15 @@ impl Polynomial {
                 .batch_invert();
 
             // p(x)=∑y_j⋅L_j(X) in coefficients
-            let mut final_poly = vec![Scalar::zero(); domain_len];
+            let mut final_poly = vec![Scalar::zero(); poly_size];
 
+            // Calculate p_j = y_j * L_j(X)
             for (j, (divisor_j, y_j)) in divisors.into_iter().zip(evals.iter()).enumerate() {
-                let mut tmp: Vec<F> = Vec::with_capacity(domain_len);
-                let mut product = Vec::with_capacity(domain_len - 1);
-                tmp.push(Scalar::one());
+                let mut poly_j: Vec<F> = Vec::with_capacity(poly_size);
+                let mut product = Vec::with_capacity(poly_size - 1);
+                poly_j.push(Scalar::one());
 
                 // obtain domain for x_k
-                //
                 for (x_k, divisor) in domains
                     .iter()
                     .enumerate()
@@ -78,29 +80,31 @@ impl Polynomial {
                     .map(|(_, x)| x)
                     .zip(divisor_j.into_iter())
                 {
-                    product.resize(tmp.len() + 1, Scalar::zero());
+                    product.resize(poly_j.len() + 1, Scalar::zero());
 
-                    // loop (domain_len + 1) round
-                    for ((a, b), product) in tmp
+                    // loop (poly_size + 1) round
+                    for ((a, b), product) in poly_j
                         .iter()
                         .chain(std::iter::once(&Scalar::zero()))
-                        .zip(std::iter::once(&Scalar::zero()).chain(tmp.iter()))
+                        .zip(std::iter::once(&Scalar::zero()).chain(poly_j.iter()))
                         .zip(product.iter_mut())
                     {
                         *product = *a * (-divisor * x_k) + *b * divisor;
                     }
-                    std::mem::swap(&mut tmp, &mut product);
+                    std::mem::swap(&mut poly_j, &mut product);
                 }
 
-                assert_eq!(tmp.len(), domain_len);
-                assert_eq!(product.len(), domain_len - 1);
+                assert_eq!(poly_j.len(), poly_size);
+                assert_eq!(product.len(), poly_size - 1);
 
-                // p(x)=∑y_j⋅L_j(X)
-                for (final_coeff, interpolation_coeff) in final_poly.iter_mut().zip(tmp.into_iter())
+                // p(x)=∑p_i, add the coefficient.
+                for (final_coeff, interpolation_coeff) in
+                    final_poly.iter_mut().zip(poly_j.into_iter())
                 {
                     *final_coeff += interpolation_coeff * y_j;
                 }
             }
+
             Self { coeffs: final_poly }
         }
     }
