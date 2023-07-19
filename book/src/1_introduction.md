@@ -78,4 +78,4 @@ can keep their story straight.
 
 
 ## Implement
-* [The interactive proofs case(1.2.1) in chapter 1](../../1-ip)
+* [The interactive proofs case(1.2.1) in chapter 1](../../1_IP)

@@ -15,3 +15,6 @@ Cargo.lock
 
 .idea
 .vscode
+
+# ignore tmp dump data
+**/*.bin

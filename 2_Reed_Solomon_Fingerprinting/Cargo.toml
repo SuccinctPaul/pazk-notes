@@ -1,0 +1,12 @@
+[package]
+name = "Reed_Solomon_Fingerprinting"
+version = "0.1.0"
+edition = "2021"
+description = "The Reed-Solomon Fingerprinting case(2.1) in chapter 2"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ff = "0.13.0"
+bls12_381 = "0.8.0"
+rand = "0.8.5"
+rand_core = { version = "0.6.4", default-features = false, features = ["std"] }
