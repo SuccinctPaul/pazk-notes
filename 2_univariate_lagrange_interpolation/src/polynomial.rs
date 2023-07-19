@@ -1,7 +1,7 @@
 use bls12_381::Scalar;
 use ff::BatchInvert;
-use std::iter::Scan;
 use rayon::{current_num_threads, scope, Scope};
+use std::iter::Scan;
 
 // p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1)
 //
@@ -41,7 +41,7 @@ impl Polynomial {
             }
         } else {
             let poly_size = domains.len();
-            let lag_basis_poly_size = poly_size -1;
+            let lag_basis_poly_size = poly_size - 1;
 
             // 1. divisors = vec(x_j - x_k). prepare for L_j(X)=∏(X−x_k)/(x_j−x_k)
             let mut divisors = Vec::with_capacity(poly_size);
@@ -66,12 +66,11 @@ impl Polynomial {
                 .batch_invert();
 
             // 2. Calculate  L_j(X) : L_j(X)=∏(X−x_k) divisors_j
-            let mut L_j_vec:Vec<Vec<Scalar>>  = Vec::with_capacity(poly_size);
+            let mut L_j_vec: Vec<Vec<Scalar>> = Vec::with_capacity(poly_size);
 
             for (j, divisor_j) in divisors.into_iter().enumerate() {
                 let mut L_j: Vec<Scalar> = Vec::with_capacity(poly_size);
                 L_j.push(Scalar::one());
-
 
                 // (X−x_k) divisors_j
                 let mut product = Vec::with_capacity(lag_basis_poly_size);
@@ -109,8 +108,7 @@ impl Polynomial {
             let mut final_poly = vec![Scalar::zero(); poly_size];
             // 3. p(x)=∑y_j⋅L_j(X)
             for (L_j, y_j) in L_j_vec.iter().zip(evals) {
-                for (final_coeff, L_j_coeff) in final_poly.iter_mut().zip(L_j.into_iter())
-                {
+                for (final_coeff, L_j_coeff) in final_poly.iter_mut().zip(L_j.into_iter()) {
                     *final_coeff += L_j_coeff * y_j;
                 }
             }
@@ -135,8 +133,10 @@ impl Polynomial {
             let chunk_size = (poly_size + num_threads - 1) / num_threads;
             let mut parts = vec![Scalar::zero(); num_threads];
             scope(|scope| {
-                for (chunk_idx, (out, c)) in
-                    parts.chunks_mut(1).zip(coeffs.chunks(chunk_size)).enumerate()
+                for (chunk_idx, (out, c)) in parts
+                    .chunks_mut(1)
+                    .zip(coeffs.chunks(chunk_size))
+                    .enumerate()
                 {
                     scope.spawn(move |_| {
                         let start = chunk_idx * chunk_size;
