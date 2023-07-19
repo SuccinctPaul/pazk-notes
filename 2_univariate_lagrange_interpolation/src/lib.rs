@@ -60,7 +60,7 @@ fn lagrange_interpolate() {
     let z = poly.evaluate(Scalar::from_u128(3));
     println!("{:?}", z);
 
-    // meet errors
+    // todo meet errors
     for (x, y) in domain.iter().zip(evals) {
         assert_eq!(poly.evaluate(*x), y);
     }
