@@ -1,5 +1,8 @@
 [workspace]
 members = [
-    "1-ip",
-    "3_sum-check"
+    "1_IP",
+    "2_Reed_Solomon_Fingerprinting",
+    "2_Freivalds_Algorithm",
+    "2_univariate_lagrange_interpolation",
+    "3_sum-check",
 ]
