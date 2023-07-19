@@ -1,13 +1,14 @@
 use bls12_381::Scalar;
 use ff::BatchInvert;
 use std::iter::Scan;
+use rayon::{current_num_threads, scope, Scope};
 
 // p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1)
 //
 // coeffs: [a_0, a_1, ..., a_n]
 // basis: X^[n-1]
 pub struct Polynomial {
-    coeffs: Vec<Scalar>,
+    pub(crate) coeffs: Vec<Scalar>,
 }
 
 impl Polynomial {
@@ -17,7 +18,7 @@ impl Polynomial {
     //
     // domain: {0, 1, . . . , n − 1}
     // evals: {p(0), p(1), ..., p(n-1)
-    fn encode(vector: Vec<Scalar>) -> Self {
+    pub fn encode(vector: Vec<Scalar>) -> Self {
         Self { coeffs: vector }
     }
 
@@ -40,12 +41,13 @@ impl Polynomial {
             }
         } else {
             let poly_size = domains.len();
+            let lag_basis_poly_size = poly_size -1;
 
             // 1. divisors = vec(x_j - x_k). prepare for L_j(X)=∏(X−x_k)/(x_j−x_k)
-            let mut divisors = Vec::with_capacity(domain_len);
+            let mut divisors = Vec::with_capacity(poly_size);
             for (j, x_j) in domains.iter().enumerate() {
                 // divisor_j
-                let mut divisor = Vec::with_capacity(domain_len - 1);
+                let mut divisor = Vec::with_capacity(lag_basis_poly_size);
                 // obtain domain for x_k
                 for x_k in domains
                     .iter()
@@ -63,14 +65,16 @@ impl Polynomial {
                 .flat_map(|v| v.iter_mut())
                 .batch_invert();
 
-            // p(x)=∑y_j⋅L_j(X) in coefficients
-            let mut final_poly = vec![Scalar::zero(); poly_size];
+            // 2. Calculate  L_j(X) : L_j(X)=∏(X−x_k) divisors_j
+            let mut L_j_vec:Vec<Vec<Scalar>>  = Vec::with_capacity(poly_size);
 
-            // Calculate p_j = y_j * L_j(X)
-            for (j, (divisor_j, y_j)) in divisors.into_iter().zip(evals.iter()).enumerate() {
-                let mut poly_j: Vec<F> = Vec::with_capacity(poly_size);
-                let mut product = Vec::with_capacity(poly_size - 1);
-                poly_j.push(Scalar::one());
+            for (j, divisor_j) in divisors.into_iter().enumerate() {
+                let mut L_j: Vec<Scalar> = Vec::with_capacity(poly_size);
+                L_j.push(Scalar::one());
+
+
+                // (X−x_k) divisors_j
+                let mut product = Vec::with_capacity(lag_basis_poly_size);
 
                 // obtain domain for x_k
                 for (x_k, divisor) in domains
@@ -80,57 +84,63 @@ impl Polynomial {
                     .map(|(_, x)| x)
                     .zip(divisor_j.into_iter())
                 {
-                    product.resize(poly_j.len() + 1, Scalar::zero());
+                    product.resize(L_j.len() + 1, Scalar::zero());
 
                     // loop (poly_size + 1) round
-                    for ((a, b), product) in poly_j
+                    // calculate L_j(X)=∏(X−x_k) with coefficient form.
+                    for ((a, b), product) in L_j
                         .iter()
                         .chain(std::iter::once(&Scalar::zero()))
-                        .zip(std::iter::once(&Scalar::zero()).chain(poly_j.iter()))
+                        .zip(std::iter::once(&Scalar::zero()).chain(L_j.iter()))
                         .zip(product.iter_mut())
                     {
                         *product = *a * (-divisor * x_k) + *b * divisor;
                     }
-                    std::mem::swap(&mut poly_j, &mut product);
+                    std::mem::swap(&mut L_j, &mut product);
                 }
 
-                assert_eq!(poly_j.len(), poly_size);
+                assert_eq!(L_j.len(), poly_size);
                 assert_eq!(product.len(), poly_size - 1);
 
-                // p(x)=∑p_i, add the coefficient.
-                for (final_coeff, interpolation_coeff) in
-                    final_poly.iter_mut().zip(poly_j.into_iter())
-                {
-                    *final_coeff += interpolation_coeff * y_j;
-                }
+                L_j_vec.push(L_j);
             }
 
+            // p(x)=∑y_j⋅L_j(X) in coefficients
+            let mut final_poly = vec![Scalar::zero(); poly_size];
+            // 3. p(x)=∑y_j⋅L_j(X)
+            for (L_j, y_j) in L_j_vec.iter().zip(evals) {
+                for (final_coeff, L_j_coeff) in final_poly.iter_mut().zip(L_j.into_iter())
+                {
+                    *final_coeff += L_j_coeff * y_j;
+                }
+            }
             Self { coeffs: final_poly }
         }
     }
 
-    /// This evaluates a polynomial (in coefficient form) at `x`.
-    pub fn evaluate(poly: &Polynomial, x: Scalar) -> Scalar {
-        let coeffs = poly.coeffs.clone();
+    // This evaluates a polynomial (in coefficient form) at `x`.
+    pub fn evaluate(&self, x: Scalar) -> Scalar {
+        let coeffs = self.coeffs.clone();
+        let poly_size = self.coeffs.len();
 
-        fn eval(poly: &Vec<Scalar>, point: F) -> F {
+        fn eval(poly: &[Scalar], point: Scalar) -> Scalar {
             poly.iter()
                 .fold(Scalar::zero(), |acc, coeff| acc * point + coeff)
         }
-        let n = poly.coeffs.len();
-        let num_threads = multicore::current_num_threads();
-        if n * 2 < num_threads {
+
+        let num_threads = current_num_threads();
+        if poly_size * 2 < num_threads {
             eval(&coeffs, x)
         } else {
-            let chunk_size = (n + num_threads - 1) / num_threads;
+            let chunk_size = (poly_size + num_threads - 1) / num_threads;
             let mut parts = vec![Scalar::zero(); num_threads];
-            multicore::scope(|scope| {
-                for (chunk_idx, (out, coeffs)) in
-                    parts.chunks_mut(1).zip(poly.chunks(chunk_size)).enumerate()
+            scope(|scope| {
+                for (chunk_idx, (out, c)) in
+                    parts.chunks_mut(1).zip(coeffs.chunks(chunk_size)).enumerate()
                 {
                     scope.spawn(move |_| {
                         let start = chunk_idx * chunk_size;
-                        out[0] = eval(&coeffs, x) * point.pow_vartime(&[start as u64, 0, 0, 0]);
+                        out[0] = eval(c, x) * x.pow_vartime(&[start as u64, 0, 0, 0]);
                     });
                 }
             });
