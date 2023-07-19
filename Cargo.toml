@@ -1,4 +1,5 @@
 [workspace]
 members = [
     "1-ip",
+    "3_sum-check"
 ]
