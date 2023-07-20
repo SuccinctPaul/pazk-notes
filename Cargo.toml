@@ -4,5 +4,5 @@ members = [
     "2_Reed_Solomon_Fingerprinting",
     "2_Freivalds_Algorithm",
     "2_univariate_lagrange_interpolation",
-    "3_sum-check",
+    "4_sum-check",
 ]
