@@ -1,15 +1,14 @@
+#![allow(non_snake_case)]
 
 pub mod polynomial;
 
-
-
 #[cfg(test)]
 mod test {
-    use std::ops::Sub;
-    use std::time::Instant;
     use crate::polynomial::Polynomial;
     use bls12_381::Scalar;
     use ff::PrimeField;
+    use std::ops::Sub;
+    use std::time::Instant;
 
     // Encode vector into polynomial.
     #[test]

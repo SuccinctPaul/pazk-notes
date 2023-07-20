@@ -22,7 +22,7 @@ impl Matrix {
     }
 
     fn get_columns(&self, column_index: usize) -> Vec<Scalar> {
-        assert!(0 <= column_index || self.cols > column_index);
+        assert!(self.cols > column_index);
 
         self.values
             .iter()
