@@ -2,6 +2,13 @@
 
 pub mod polynomial;
 
+// TODO: can do a bench for diff impl
+// eg:
+// 1: https://github.com/Neptune-Crypto/twenty-first/twenty-first/src/shared_math/polynomial.rs#lagrange_interpolate
+// 2. halo2's
+// 3. arkwork's
+// 4. lambda-work's
+
 #[cfg(test)]
 mod test {
     use crate::polynomial::Polynomial;
