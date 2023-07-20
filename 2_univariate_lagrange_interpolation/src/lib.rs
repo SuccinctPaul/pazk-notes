@@ -3,7 +3,6 @@ use bls12_381::Scalar;
 use ff::PrimeField;
 
 mod polynomial;
-mod utils;
 
 /// Encode vector into polynomial.
 
@@ -57,11 +56,8 @@ fn lagrange_interpolate() {
 
     let poly = Polynomial::lagrange_interpolate(domain.clone(), evals.clone());
 
-    let z = poly.evaluate(Scalar::from_u128(3));
-    println!("{:?}", z);
-
-    // todo meet errors
     for (x, y) in domain.iter().zip(evals) {
         assert_eq!(poly.evaluate(*x), y);
     }
+    println!("pass");
 }

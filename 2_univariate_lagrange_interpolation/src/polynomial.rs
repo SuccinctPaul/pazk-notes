@@ -121,8 +121,10 @@ impl Polynomial {
         let coeffs = self.coeffs.clone();
         let poly_size = self.coeffs.len();
 
+        // p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1), revert it and fold sum it
         fn eval(poly: &[Scalar], point: Scalar) -> Scalar {
             poly.iter()
+                .rev()
                 .fold(Scalar::zero(), |acc, coeff| acc * point + coeff)
         }
 
@@ -148,4 +150,3 @@ impl Polynomial {
         }
     }
 }
-// canonical set of inputs
