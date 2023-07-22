@@ -64,25 +64,26 @@ impl MPolynomial {
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
-    fn lagrange(v: usize, domain: Vec<Scalar>, evals: Vec<Scalar>) {
-        assert_eq!(domain.len().pow(v as u32), evals.len());
+    fn lagrange(self, domain: &Vec<Scalar>, evals: &Vec<Scalar>) {
+        assert_eq!(domain.len(), evals.len());
+        assert_eq!(domain.len(), self.var_num, "Domain is less than var_num");
 
-        // compute f_i = f_x * X_w
-
-        for (i, f_w) in evals.iter().enumerate() {
-
-            // decode i into 二进制
-
-            // compute X_w
-        }
+        // let n = 1 << self.var_num;
+        // // compute f_i = f_x * X_w
+        // let X_w = Vec::with_capacity(n);
+        // for (i, f_w) in evals.iter().enumerate() {
+        //
+        //     // decode i into 二进制
+        //
+        //     // compute X_w
+        //
+        // }
 
         // compute F = sum(f_i)
     }
 
     fn evaluate(&self, domain: &Vec<usize>) -> Scalar {
-        let var_num = &self.var_num;
-
-        assert_eq!(domain.len(), *var_num, "Domain is less than it");
+        assert_eq!(domain.len(), self.var_num, "Domain is less than var_num");
 
         let mut sum_of_term = Scalar::zero();
 
@@ -98,7 +99,7 @@ impl MPolynomial {
                 sum_of_term += coeff;
             } else {
                 // x_0^exps[0] * x_1^exps[1] * x_2^exps[2]+ ...
-                let exps = convert_to_binary(var_num, index);
+                let exps = convert_to_binary(&self.var_num, index);
 
                 // compute product of x , eg: product_x = (x_1^exp1) * (x_2^exp2)
                 let mut product = 1;

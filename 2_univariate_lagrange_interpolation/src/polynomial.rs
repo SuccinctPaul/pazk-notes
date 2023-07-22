@@ -71,7 +71,7 @@ impl Polynomial {
                 let mut L_j: Vec<Scalar> = Vec::with_capacity(poly_size);
                 L_j.push(Scalar::one());
 
-                // (X−x_k) divisors_j
+                // (X−x_k) * divisors_j
                 let mut product = Vec::with_capacity(lag_basis_poly_size);
 
                 // obtain domain for x_k
@@ -85,7 +85,7 @@ impl Polynomial {
                     product.resize(L_j.len() + 1, Scalar::zero());
 
                     // loop (poly_size + 1) round
-                    // calculate L_j(X)=∏(X−x_k) with coefficient form.
+                    // calculate L_j(X)=∏(X−x_k) divisors_j with coefficient form.
                     for ((a, b), product) in L_j
                         .iter()
                         .chain(std::iter::once(&Scalar::zero()))
