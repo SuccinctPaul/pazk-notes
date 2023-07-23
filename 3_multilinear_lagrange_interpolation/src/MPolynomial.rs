@@ -64,22 +64,24 @@ impl MPolynomial {
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
-    fn lagrange(self, domain: &Vec<Scalar>, evals: &Vec<Scalar>) {
-        assert_eq!(domain.len(), evals.len());
-        assert_eq!(domain.len(), self.var_num, "Domain is less than var_num");
+    fn lagrange(self, evals: &Vec<Scalar>) {
+        assert_eq!(evals.len(), self.var_num, "Domain is less than var_num");
+        let domain_len = 1 << evals.len();
 
-        // let n = 1 << self.var_num;
-        // // compute f_i = f_x * X_w
-        // let X_w = Vec::with_capacity(n);
-        // for (i, f_w) in evals.iter().enumerate() {
-        //
-        //     // decode i into 二进制
-        //
-        //     // compute X_w
-        //
-        // }
+        // compute f_i = f_w * X_w
+        for (i, f_w) in evals.iter().enumerate() {
+            // todo!(how to factoration_to_coefficient_poly: ∏(xiwi +(1−xi)(1−wi)));
 
-        // compute F = sum(f_i)
+            // decode i into 二进制
+            // let w = convert_to_binary(&self.var_num, i);
+            //
+            // // compute X_w
+            // let X_w = Vec::with_capacity(w.len());
+            // for x_i in w.iter() {
+            //
+            // }
+        }
+        todo!()
     }
 
     fn evaluate(&self, domain: &Vec<usize>) -> Scalar {
