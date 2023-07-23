@@ -3,5 +3,7 @@ members = [
     "1_IP",
     "2_Reed_Solomon_Fingerprinting",
     "2_Freivalds_Algorithm",
-    "2_univariate_lagrange_interpolation"
+    "2_univariate_lagrange_interpolation",
+    "3_multilinear_lagrange_interpolation",
+    "4_sum-check",
 ]
