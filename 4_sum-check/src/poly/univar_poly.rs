@@ -5,6 +5,7 @@ use rayon::{current_num_threads, scope};
 //
 // coeffs: [a_0, a_1, ..., a_n]
 // basis: X^[n-1]
+#[derive(Debug, Clone)]
 pub struct Polynomial {
     pub(crate) coeffs: Vec<Scalar>,
 }

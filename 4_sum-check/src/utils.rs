@@ -1,3 +1,6 @@
+use bls12_381::Scalar;
+use ff::PrimeField;
+
 // convert a num into its binary form
 // eg: 8 -> 1000, will output [1, 0, 0, 0]
 pub fn convert_to_binary(bit_len: &usize, num: usize) -> Vec<usize> {
