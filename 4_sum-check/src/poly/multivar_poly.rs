@@ -177,8 +177,7 @@ mod test {
     use bls12_381::Scalar;
     use ff::PrimeField;
 
-    #[test]
-    fn test_partial_evaluate() {
+    fn gen_mpoly() -> MPolynomial {
         // let g(x1, x2, x3) = 5 + 2*x3 + 3*x2 +  x1 * x2 * x3
         // term0: exp: (0,0,0) = 5
         // term1: exp: (0,0,1) = 2*x3
@@ -188,7 +187,7 @@ mod test {
 
         let var_num = 3;
 
-        let mpoly = MPolynomial {
+        MPolynomial {
             var_num,
             coeffs: vec![
                 Scalar::from_u128(5),
@@ -200,7 +199,12 @@ mod test {
                 Scalar::zero(),
                 Scalar::one(),
             ],
-        };
+        }
+    }
+
+    #[test]
+    fn test_partial_evaluate() {
+        let mpoly = gen_mpoly();
 
         // domain: (0,1,1)
         let challenge_domain = vec![10];

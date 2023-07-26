@@ -4,7 +4,8 @@ use ff::{Field, PrimeField};
 use rand_core::{OsRng, RngCore};
 
 pub struct Verifier {
-    proof: Scalar, // C1
+    proof: Scalar,
+    // C1
     v: usize,
     cached_g_j: Vec<Polynomial>,
     challenges: Vec<usize>, // challenges: r1, r2, ..., rv. (In implement, r1 is a random usize, which is easy to construct a Field)
@@ -20,8 +21,12 @@ impl Verifier {
         }
     }
 
+    pub fn challengrs(&self) -> Vec<usize> {
+        self.challengrs().clone()
+    }
+
     // generate r1, r2, ..., rv
-    pub fn gen_challenge() -> usize {
+    fn gen_challenge() -> usize {
         let k = OsRng.next_u32() % 1000;
         k as usize
     }
@@ -98,7 +103,6 @@ impl Verifier {
         let r_v = self.challenges.last().unwrap().clone() as u128;
         let g_v = self.cached_g_j.last().unwrap().clone();
         let actual = g_v.evaluate(Scalar::from_u128(r_v));
-        // todo: try to pass closure instead target value.
 
         assert_eq!(actual, target, "Verifier rejected the proof");
         println!("Verifier accepted the proof");
