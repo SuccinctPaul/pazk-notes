@@ -2,7 +2,8 @@
 
 
 
-
+## Schwartz-Zippel Lemma
+TODO- to dig out more info with permutation.
 
 
 
