@@ -65,11 +65,11 @@ impl MPolynomial {
         sum_of_term
     }
 
-    // Convert a muti-poly into a univariable-poly:
+    // Convert a multi-poly into a uni-poly:
     //      f(x1, x2, x3, x4) , x1,x2,x3,x4 in hypercube
-    //      With inputs(r1,r2,X,x4), the mpoly become a unipoly p(X)
+    //      With inputs(r1,r2,X,x4), the multi-poly become a uni-poly p(X)
     //
-    // input: (r1, ..., r_{j-1}) in F,
+    // input: (r1, ..., r_{j-1}) in F, (In implement, r1 is a random usize, which is easy to construct a Field.)
     //        (x_j+1, ..., x_v} in hypercube{0,1}^v
     //
     // This is useful in sum-check protocol when obtaining g_i(X)
