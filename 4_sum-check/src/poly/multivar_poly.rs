@@ -2,14 +2,15 @@ use crate::poly::univar_poly::Polynomial;
 use crate::utils::convert_to_binary;
 use bls12_381::Scalar;
 use ff::Field;
+use log::{debug, log};
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::AddAssign;
+use std::ops::{Add, AddAssign};
 
 // A multivariate polynomial g is multilinear if the degree of the polynomial in each variable is at most one.
 // For example, the polynomial g(x1,x2) = x_1*x_2 +4x_1 +3x_2 is multilinear, but the polynomial
 // h(x1,x2) = x2 + 4x1 + 3x2 is not.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MPolynomial {
     pub var_num: usize,
     // The index (with binary form) is the exponent values.
@@ -81,12 +82,17 @@ impl MPolynomial {
         // <k,v>: k is the exp of X, v is the coeff, aka. <exp, coeff>
         let mut map: HashMap<usize, Scalar> = HashMap::new();
 
-        // (x_j+1, ..., x_v} in hypercube{0,1}^v
-        let extra_var_num = self.var_num - j;
-        let extra_domain = (0..(2 ^ extra_var_num))
+        // var_num = challenger_len + 1 + extra_len
+        let extra_var_num = self.var_num - j - 1;
+        let extra_n = 1 << extra_var_num;
+        let extra_domain = (0..extra_n)
             .into_iter()
             .map(|n| convert_to_binary(&extra_var_num, n))
             .collect::<Vec<_>>();
+        debug!(
+            "extra domain {:?}, j {:?}, var_num:{:?}, extra_var_num: {:?}, extra_n: {:?}",
+            extra_domain, j, self.var_num, extra_var_num, extra_n
+        );
 
         // compute each term_i: coeff * product_x * X(x_j)
         for (index, coeff) in self.coeffs.iter().enumerate() {
@@ -95,17 +101,20 @@ impl MPolynomial {
                 continue;
             }
 
-            // if index is 0, then term = coeff.
-            if index == 0 {
-                map.insert(0, coeff.clone());
-                continue;
-            }
-
             // x_0^exps[0] * x_1^exps[1] * x_2^exps[2]+ ...
             let exps = convert_to_binary(&self.var_num, index);
 
             // compute product_x on challenge_domain + hypercube_domain[i]
-            for extra in extra_domain {
+            for extra in extra_domain.clone() {
+                // if index is 0, then term = coeff.
+                if index == 0 {
+                    map.entry(0)
+                        .and_modify(|v| v.add_assign(&coeff.clone()))
+                        .or_insert(coeff.clone());
+
+                    continue;
+                }
+
                 // compute product of x , eg: product_x = (x_1^exp1) * (x_2^exp2), except x_j
                 let mut key = 0;
                 let mut product = 1;
@@ -114,35 +123,40 @@ impl MPolynomial {
                 let mut domain = challenge_domain.clone();
                 domain.push(0);
                 domain.extend(extra.clone());
+                debug!(
+                    "coeff:{:?}, domain:{:?}, j: {:?}, exps: {:?}",
+                    coeff, domain, j, exps
+                );
                 for (index, (xi, exp)) in domain.iter().zip(exps.clone()).enumerate() {
                     if index == j {
                         key = exp.clone();
                     } else {
-                        product *= xi.pow(exp.clone() as u32);
+                        let pro = xi.pow(exp.clone() as u32);
+                        debug!("x_{:?}^exp: {:?}^{:?}={:?}", index + 1, xi, exp, pro);
+                        product *= pro;
+                        // product *= xi.pow(exp.clone() as u32);
                     }
                     // once product, the computation of product is over. As zero multiple anything is zero.
                     if 0 == product {
                         break;
                     }
-
-                    if 0 == product {
-                        continue;
-                    } else {
-                        let term_i = coeff.mul(&Scalar::from(product as u64));
-
-                        if map.contains_key(&key) {
-                            map.get(&key).unwrap().add_assign(term_i);
-                        } else {
-                            map.insert(key, term_i);
-                        }
-                    }
+                }
+                if 0 == product {
+                    continue;
+                } else {
+                    let term_i = coeff.mul(&Scalar::from(product as u64));
+                    debug!("k:{:?}, v:{:?}", key, term_i);
+                    map.entry(key)
+                        .and_modify(|v| v.add_assign(&term_i))
+                        .or_insert(term_i);
                 }
             }
         }
 
         // map -> poly
-        let poly_size = map.keys().max().unwrap();
-        let coeffs = (0..*poly_size)
+        // println!("map:{:?}", map);
+        let max_key = map.keys().max().unwrap().clone();
+        let coeffs = (0..=max_key)
             .map(|i: usize| {
                 if map.contains_key(&i) {
                     map.get(&i).unwrap().clone()
@@ -158,6 +172,7 @@ impl MPolynomial {
 #[cfg(test)]
 mod test {
     use crate::poly::multivar_poly::MPolynomial;
+    use crate::poly::univar_poly::Polynomial;
     use crate::utils::convert_to_binary;
     use bls12_381::Scalar;
     use ff::PrimeField;
@@ -190,14 +205,18 @@ mod test {
         // domain: (0,1,1)
         let challenge_domain = vec![10];
 
-        let poly = mpoly.partial_evaluate(&challenge_domain);
+        let actual = mpoly.partial_evaluate(&challenge_domain);
 
-        println!("{:?}", poly);
+        // expect t(x) = 12 + 16x
+        let target = Polynomial {
+            coeffs: vec![Scalar::from_u128(12), Scalar::from_u128(16)],
+        };
+        assert_eq!(actual, target);
 
-        // let target = Scalar::from_u128(10);
+        let actual_evaluation = actual.evaluate(Scalar::from_u128(10));
 
-        // let actual = poly.evaluate(&domain);
-        // assert_eq!(target, actual);
+        let target_evaluation = Scalar::from_u128(172);
+        assert_eq!(target_evaluation, actual_evaluation)
     }
 
     #[test]
