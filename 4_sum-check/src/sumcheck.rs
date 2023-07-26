@@ -37,20 +37,20 @@ impl SumCheck {
 
         // round 2 - (v-1)
         for j in 2..self.v {
-            let challenges = self.verifier.challengrs();
+            let challenges = self.verifier.challenges();
             let g_j = self.prover.recursive_round_j(&challenges);
             self.verifier.recursive_round_j(j, g_j);
-            // drop(challenges);
+            drop(challenges);
         }
 
         // round v
-        let challenges = self.verifier.challengrs();
+        let challenges = self.verifier.challenges();
         let g_v = self.prover.round_v(&challenges);
         self.verifier.round_v(g_v);
         // drop(challenges);
 
         // finally check
-        let challenges = self.verifier.challengrs();
+        let challenges = self.verifier.challenges();
         let target = self.prover.evaluate(&challenges);
         self.verifier.check(target);
     }

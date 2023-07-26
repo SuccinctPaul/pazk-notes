@@ -21,8 +21,8 @@ impl Verifier {
         }
     }
 
-    pub fn challengrs(&self) -> Vec<usize> {
-        self.challengrs().clone()
+    pub fn challenges(&self) -> Vec<usize> {
+        self.challenges.clone()
     }
 
     // generate r1, r2, ..., rv
