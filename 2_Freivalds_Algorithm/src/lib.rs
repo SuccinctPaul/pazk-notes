@@ -1,17 +1,17 @@
-use crate::matrix::Matrix;
-use crate::prover::Prover;
-use crate::utils::gen_x;
-use rand_core::OsRng;
-
-mod matrix;
 /// For matrix A and B, C = A · B.
 ///
 /// How can one verify that two matrices were multiplied correctly.
 /// First,choose a random `r∈Fp`,and let x=(1,r,r2,...,rn−1).
 /// Then compute `y=Cx` and `z=A·Bx`,outputting YES if y = z and NO otherwise.
+mod matrix;
 mod prover;
 mod utils;
 mod verifier;
+
+use crate::matrix::Matrix;
+use crate::prover::Prover;
+use crate::utils::gen_x;
+use rand_core::OsRng;
 
 #[test]
 fn completeness() {

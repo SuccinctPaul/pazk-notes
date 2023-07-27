@@ -71,6 +71,7 @@ impl MPolynomial {
         // compute f_i = f_w * X_w
         for (i, f_w) in evals.iter().enumerate() {
             // todo!(how to factoration_to_coefficient_poly: ∏(xiwi +(1−xi)(1−wi)));
+            // This is blocked for 4.4, 4.5
 
             // decode i into 二进制
             // let w = convert_to_binary(&self.var_num, i);
