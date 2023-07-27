@@ -4,7 +4,7 @@
 
 ## Schwartz-Zippel Lemma
 TODO- to dig out more info with permutation.
-
+https://site.kurtpan.pro/notes/Schwartz-Zippel-lemma.html
 
 
 ## Univariate/Multilinear Low-degree Extension
