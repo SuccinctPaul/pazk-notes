@@ -26,7 +26,7 @@ fn completeness() {
     let c = alice.matrix_multiplication();
 
     let x = gen_x(OsRng, n);
-    // z=A·Bx
+    // z=A·(Bx)
     let z = alice.hash(&x);
 
     // verify
