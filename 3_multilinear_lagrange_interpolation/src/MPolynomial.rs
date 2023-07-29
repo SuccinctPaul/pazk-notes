@@ -1,53 +1,53 @@
+// Generally speaking, there are two type of implements:
+// # Impl-1
+// ## Struct
+//
+// pub struct MSparsePolynomial<F: Field, T: Term> {
+//     /// The number of variables the polynomial supports
+//     #[derivative(PartialEq = "ignore")]
+//     pub num_vars: usize,
+//     /// List of each term along with its coefficient
+//     /// term: (coeff, T)
+//     /// T: [(var_index, exp)]
+//     pub terms: Vec<(F, T)>,
+// }
+//
+// ## Examples
+// `2*x_0^3 + x_0*x_2 + x_1*x_2 + 5`:
+//
+// let poly = MSparsePolynomial::from_coefficients_vec(
+//     3,
+//     vec![
+//         (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
+//         (Fq::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
+//         (Fq::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])),
+//         (Fq::from(5), SparseTerm::new(vec![])),
+//     ],
+// );
+//
+// # Impl-2
+// Multivariate polynomials are represented as hash maps with exponent vectors
+// as keys and coefficients as values. E.g.:
+// ## struct
+// pub struct MPolynomial<T: FiniteField> {
+//
+//     pub variable_count: usize,
+//     // Notice that the exponent values may not exceed 0xFF = 255 = u8::MAX.
+//     pub coefficients: HashMap<Vec<u8>, T>,
+// }
+//
+// ## Examples
+// f(x,y,z) = 17 + 2xy + 42z - 19x^6*y^3*z^12 is represented as:
+// var_num = 3,
+//     {
+//         [0,0,0] => 17,
+//         [1,1,0] => 2,
+//         [0,0,1] => 42,
+//         [6,3,12] => -19,
+//     }
 use crate::utils::{convert_from_binary, convert_to_binary, expand_factor_for_mpoly};
 use bls12_381::Scalar;
 use ff::Field;
-/// Generally speaking, there are two type of implements:
-/// # Impl-1
-/// ## Struct
-///
-/// pub struct MSparsePolynomial<F: Field, T: Term> {
-///     /// The number of variables the polynomial supports
-///     #[derivative(PartialEq = "ignore")]
-///     pub num_vars: usize,
-///     /// List of each term along with its coefficient
-///     /// term: (coeff, T)
-///     /// T: [(var_index, exp)]
-///     pub terms: Vec<(F, T)>,
-/// }
-///
-/// ## Examples
-/// `2*x_0^3 + x_0*x_2 + x_1*x_2 + 5`:
-/// ```
-/// let poly = MSparsePolynomial::from_coefficients_vec(
-///     3,
-///     vec![
-///         (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
-///         (Fq::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
-///         (Fq::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])),
-///         (Fq::from(5), SparseTerm::new(vec![])),
-///     ],
-/// );
-/// ```
-/// # Impl-2
-/// Multivariate polynomials are represented as hash maps with exponent vectors
-/// as keys and coefficients as values. E.g.:
-/// ## struct
-/// pub struct MPolynomial<T: FiniteField> {
-///
-///     pub variable_count: usize,
-///     // Notice that the exponent values may not exceed 0xFF = 255 = u8::MAX.
-///     pub coefficients: HashMap<Vec<u8>, T>,
-/// }
-///
-/// ## Examples
-/// f(x,y,z) = 17 + 2xy + 42z - 19x^6*y^3*z^12 is represented as:
-/// var_num = 3,
-///     {
-///         [0,0,0] => 17,
-///         [1,1,0] => 2,
-///         [0,0,1] => 42,
-///         [6,3,12] => -19,
-///     }
 use std::collections::HashMap;
 use std::env::var;
 use std::ops::AddAssign;
@@ -55,6 +55,7 @@ use std::ops::AddAssign;
 // A multivariate polynomial g is multilinear if the degree of the polynomial in each variable is at most one.
 // For example, the polynomial g(x1,x2) = x_1*x_2 +4x_1 +3x_2 is multilinear, but the polynomial
 // h(x1,x2) = x2 + 4x1 + 3x2 is not.
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MPolynomial {
     pub var_num: usize,
     // The index (with binary form) is the exponent values.
@@ -65,25 +66,26 @@ impl MPolynomial {
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
-    fn lagrange(self, evals: &Vec<Scalar>) {
-        assert_eq!(evals.len(), self.var_num, "Domain is less than var_num");
-        let domain_len = 1 << evals.len();
+    fn lagrange(var_num: usize, evals: &Vec<Scalar>) -> Self {
+        let n: usize = 1 << var_num;
+        assert_eq!(evals.len(), n, "Domain is less than var_num");
+
+        let mut F = vec![Scalar::zero(); n];
 
         // compute f_i = f_w * X_w
         for (i, f_w) in evals.iter().enumerate() {
-            // todo!(how to factoration_to_coefficient_poly: ∏(xiwi +(1−xi)(1−wi)));
-            // This is blocked for 4.4, 4.5
+            let w_i = convert_to_binary(&var_num, i);
+            // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
+            let X_w = Self::mpoly_langrange_basis(var_num, w_i);
+            // f_i = f(w)·X_w
+            let f_i = X_w.iter().map(|X_w_i| X_w_i * f_w).collect::<Vec<_>>();
 
-            // decode i into 二进制
-            // let w = convert_to_binary(&self.var_num, i);
-            //
-            // // compute X_w
-            // let X_w = Vec::with_capacity(w.len());
-            // for x_i in w.iter() {
-            //
-            // }
+            // F = ∑f_j
+            for i in 0..n {
+                F[i].add_assign(f_i[i]);
+            }
         }
-        todo!()
+        Self { var_num, coeffs: F }
     }
 
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
@@ -125,8 +127,8 @@ impl MPolynomial {
                 }
                 _ => panic!("Only support (0,1)^v hypercube"),
             }
-            println!("index:{:?}, w_i:{:?}", index, w_i);
-            println!("factor_i: {:?}", factor);
+            // println!("index:{:?}, w_i:{:?}", index, w_i);
+            // println!("factor_i: {:?}", factor);
             factor
         };
 
@@ -202,16 +204,42 @@ mod test {
     use ff::PrimeField;
 
     #[test]
-    fn test_langrange() {
-        // g(x1,x2) = x1*x2 + 4*x1 + 3*x2
-        // var_num = 2
-        // domain = {0, 1}^2, it's on hypercube.
-        //      As for each var x in [0,1], so (x1, x2) in [(0,0), (0,1), (1,0), (1,1)]
-        // evals = [0, 3, 4, 8]
-        //      As g(0,0)=0, g(0,1)=3, g(1,0)=4, g(1,1)=8.
+    fn test_lagrange() {
+        // let row g(x1, x2, x3) = 5 + 2*x3 + 3*x2 +  x1 * x2 * x3
+        // term0: exp: (0,0,0) = 5
+        // term1: exp: (0,0,1) = 2*x3
+        // term2: exp: (0,1,0) = 3*x2
+        // term3-6: exp: (0,1,0) = 0.
+        // term7: exp: (1,1,1) = x1 * x2 * x3
 
-        let domain = [[0, 0], [0, 1], [1, 0], [1, 1]];
-        let evals = [0, 3, 4, 8];
+        let var_num = 3;
+
+        let evals = vec![
+            Scalar::from_u128(5),
+            Scalar::from_u128(2),
+            Scalar::from_u128(3),
+            Scalar::zero(),
+            Scalar::zero(),
+            Scalar::zero(),
+            Scalar::zero(),
+            Scalar::one(),
+        ];
+
+        let poly = MPolynomial::lagrange(var_num, &evals);
+
+        // all domains
+        let max_num: usize = 1 << var_num;
+        let domains = (0..max_num)
+            .into_iter()
+            .map(|n| convert_to_binary(&var_num, n))
+            .collect::<Vec<_>>();
+
+        let actual = domains
+            .iter()
+            .map(|domain| poly.evaluate(domain))
+            .collect::<Vec<_>>();
+        assert_eq!(evals, actual);
+        println!("poly: {:?}", poly);
     }
 
     #[test]

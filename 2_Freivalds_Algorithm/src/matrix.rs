@@ -1,6 +1,6 @@
 use bls12_381::Scalar;
 use ff::Field;
-use rand_core::{OsRng, RngCore};
+use rand_core::OsRng;
 use std::ops::AddAssign;
 
 /// This define `matrix` (rows * cols) （m × n）

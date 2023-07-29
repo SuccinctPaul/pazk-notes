@@ -21,7 +21,7 @@ pub fn convert_from_binary(num: &Vec<usize>) -> usize {
 // For now, we'll only support two factorizations to a coeffs.
 // eg: (4x^2 + 1)(x + 4) = 4x^3 + 4x^2 + x + 4
 fn expand_factor_for_upoly(lhs: Vec<Scalar>, rhs: Vec<Scalar>) -> Vec<Scalar> {
-    let target_len = (lhs.len() - 1) * (rhs.len() - 1) + 1;
+    let target_len = lhs.len() * rhs.len() - 1;
 
     let mut product = vec![Scalar::zero(); target_len];
 
@@ -126,7 +126,7 @@ mod test {
     #[test]
     fn test_convert_into_binary() {
         for i in [1, 2, 3, 4, 8, 17] {
-            let binary = convert_to_binary(&4, i);
+            let binary = convert_to_binary(&5, i);
             println!("{:?} ->  {:?}", i, binary);
         }
     }

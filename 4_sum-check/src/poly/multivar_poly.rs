@@ -1,5 +1,5 @@
 use crate::poly::univar_poly::Polynomial;
-use crate::utils::convert_to_binary;
+use crate::utils::{convert_to_binary, expand_factor_for_mpoly};
 use bls12_381::Scalar;
 use ff::Field;
 use log::{debug, log};
@@ -18,6 +18,89 @@ pub struct MPolynomial {
 }
 
 impl MPolynomial {
+    // w: {0,1}^v
+    // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
+    // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
+    fn lagrange(var_num: usize, evals: &Vec<Scalar>) -> Self {
+        let n: usize = 1 << var_num;
+        assert_eq!(evals.len(), n, "Domain is less than var_num");
+
+        let mut F = vec![Scalar::zero(); n];
+
+        // compute f_i = f_w * X_w
+        for (i, f_w) in evals.iter().enumerate() {
+            let w_i = convert_to_binary(&var_num, i);
+            // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
+            let X_w = Self::mpoly_langrange_basis(var_num, w_i);
+            // f_i = f(w)·X_w
+            let f_i = X_w.iter().map(|X_w_i| X_w_i * f_w).collect::<Vec<_>>();
+
+            // F = ∑f_j
+            for i in 0..n {
+                F[i].add_assign(f_i[i]);
+            }
+        }
+        Self { var_num, coeffs: F }
+    }
+
+    // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
+    // eg: F(x1,x2) =>
+    //           X_w(0, 0) = (1−x1) * (1−x2)
+    //           X_w(0, 1) = (1−x1) * x2
+    //           X_w(1, 0) = x1 * (1−x2)
+    //           X_w(1, 1) = x1 * x2
+    // Though X_w is little complex, world will be changed when w in {0,1}^v hypercube.
+    // It's easy to cauth:
+    //      wi = 1, (xiwi +(1−xi)(1−wi))= xi ;
+    //      wi = 0, (xiwi +(1−xi)(1−wi))= (1 - xi) ;
+    // So it's easy to obtain the factorization form of X_w.
+    // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
+    fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
+        assert_eq!(var_num, w.len());
+        let poly_len = 1 << var_num;
+
+        // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
+        // factors as below:
+        //      inputs        => xi => term exp     = term coeff
+        //      (i=0, w1 = 0) => x1 => (1, 0, 0, 0) = -1
+        //      (i=1, w2 = 0) => x2 => (0, 1, 0, 0) = -1
+        //      (i=2, w3 = 1) => x3 => (0, 0, 1, 0) = 1
+        //      (i=3, w4 = 1) => x4 => (0, 0, 0, 1) = 1
+        let gen_X_wi = |i: usize, w_i: usize| {
+            let mut factor = vec![Scalar::zero(); poly_len];
+
+            // For (i=0, w1 = 0) => x1, whose coeff exp is (1, 0, 0, 0).
+            // We need to encode it into index for coeff vector.
+            let index: usize = 1 << (var_num - 1 - i);
+            match w_i {
+                0 => {
+                    factor[0] = Scalar::one();
+                    factor[index] = Scalar::one().neg();
+                }
+                1 => {
+                    factor[index] = Scalar::one();
+                }
+                _ => panic!("Only support (0,1)^v hypercube"),
+            }
+            // println!("index:{:?}, w_i:{:?}", index, w_i);
+            // println!("factor_i: {:?}", factor);
+            factor
+        };
+
+        // init with w[0].
+        let mut product = gen_X_wi(0, w[0]);
+
+        for (i, w_i) in w.iter().enumerate() {
+            if i == 0 {
+                continue;
+            }
+            let factor = gen_X_wi(i, w_i.clone());
+            product = expand_factor_for_mpoly(var_num, product, factor);
+        }
+
+        product
+    }
+
     pub fn evaluate(&self, domain: &Vec<usize>) -> Scalar {
         assert_eq!(domain.len(), self.var_num, "Domain is less than var_num");
 
@@ -77,7 +160,7 @@ impl MPolynomial {
         // the X = x_j, others has values.
         // Note here, x start with x_0, as the array index start with 0.
         let j = challenge_domain.len();
-        assert!(j >= 0 || j < self.var_num);
+        assert!(j < self.var_num);
 
         // <k,v>: k is the exp of X, v is the coeff, aka. <exp, coeff>
         let mut map: HashMap<usize, Scalar> = HashMap::new();
@@ -200,6 +283,45 @@ mod test {
                 Scalar::one(),
             ],
         }
+    }
+
+    #[test]
+    fn test_lagrange() {
+        // let row g(x1, x2, x3) = 5 + 2*x3 + 3*x2 +  x1 * x2 * x3
+        // term0: exp: (0,0,0) = 5
+        // term1: exp: (0,0,1) = 2*x3
+        // term2: exp: (0,1,0) = 3*x2
+        // term3-6: exp: (0,1,0) = 0.
+        // term7: exp: (1,1,1) = x1 * x2 * x3
+
+        let var_num = 3;
+
+        let evals = vec![
+            Scalar::from_u128(5),
+            Scalar::from_u128(2),
+            Scalar::from_u128(3),
+            Scalar::zero(),
+            Scalar::zero(),
+            Scalar::zero(),
+            Scalar::zero(),
+            Scalar::one(),
+        ];
+
+        let poly = MPolynomial::lagrange(var_num, &evals);
+
+        // all domains
+        let max_num: usize = 1 << var_num;
+        let domains = (0..max_num)
+            .into_iter()
+            .map(|n| convert_to_binary(&var_num, n))
+            .collect::<Vec<_>>();
+
+        let actual = domains
+            .iter()
+            .map(|domain| poly.evaluate(domain))
+            .collect::<Vec<_>>();
+        assert_eq!(evals, actual);
+        println!("poly: {:?}", poly);
     }
 
     #[test]
