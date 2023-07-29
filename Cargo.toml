@@ -8,3 +8,5 @@ members = [
     "4_sum-check",
     "4_GKR",
 ]
+
+resolver = "2"

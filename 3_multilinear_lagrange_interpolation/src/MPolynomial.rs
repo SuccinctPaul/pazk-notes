@@ -49,6 +49,7 @@ use ff::Field;
 ///         [6,3,12] => -19,
 ///     }
 use std::collections::HashMap;
+use std::env::var;
 use std::ops::AddAssign;
 
 // A multivariate polynomial g is multilinear if the degree of the polynomial in each variable is at most one.
@@ -61,6 +62,7 @@ pub struct MPolynomial {
 }
 
 impl MPolynomial {
+
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
@@ -84,6 +86,12 @@ impl MPolynomial {
         }
         todo!()
     }
+
+    fn calc_langrange_basis(var_num: usize, w: Vec<usize>) ->Vec<Scalar>{
+
+todo!()
+    }
+
 
     fn evaluate(&self, domain: &Vec<usize>) -> Scalar {
         assert_eq!(domain.len(), self.var_num, "Domain is less than var_num");
