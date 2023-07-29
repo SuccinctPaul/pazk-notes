@@ -1,4 +1,4 @@
-use crate::utils::{convert_from_binary, convert_to_binary};
+use crate::utils::{convert_from_binary, convert_to_binary, expand_factor_for_mpoly};
 use bls12_381::Scalar;
 use ff::Field;
 /// Generally speaking, there are two type of implements:
@@ -62,7 +62,6 @@ pub struct MPolynomial {
 }
 
 impl MPolynomial {
-
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
@@ -87,11 +86,58 @@ impl MPolynomial {
         todo!()
     }
 
-    fn calc_langrange_basis(var_num: usize, w: Vec<usize>) ->Vec<Scalar>{
+    // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
+    // eg: F(x1,x2) =>
+    //           X_w(0, 0) = (1−x1) * (1−x2)
+    //           X_w(0, 1) = (1−x1) * x2
+    //           X_w(1, 0) = x1 * (1−x2)
+    //           X_w(1, 1) = x1 * x2
+    // Though X_w is little complex, world will be changed when w in {0,1}^v hypercube.
+    // It's easy to cauth:
+    //      wi = 1, (xiwi +(1−xi)(1−wi))= xi ;
+    //      wi = 0, (xiwi +(1−xi)(1−wi))= (1 - xi) ;
+    // So it's easy to obtain the factorization form of X_w.
+    // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
+    fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
+        assert_eq!(var_num, w.len());
+        let poly_len = 1 << var_num;
+        let mut product = vec![Scalar::one(); poly_len];
 
-todo!()
+        // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
+        // factors as below:
+        //      inputs        => xi => term exp     = term coeff
+        //      (i=0, w1 = 0) => x1 => (1, 0, 0, 0) = -1
+        //      (i=1, w2 = 0) => x2 => (0, 1, 0, 0) = -1
+        //      (i=2, w3 = 1) => x3 => (0, 0, 1, 0) = 1
+        //      (i=3, w4 = 1) => x4 => (0, 0, 0, 1) = 1
+        let gen_X_wi = |i: usize, w_i: usize| {
+            let mut factor = vec![Scalar::zero(); poly_len];
+
+            // For (i=0, w1 = 0) => x1, whose coeff exp is (1, 0, 0, 0).
+            // We need to encode it into index for coeff vector.
+            let index: usize = 1 << (var_num - 1 - i);
+            match w_i {
+                0 => {
+                    factor[0] = Scalar::one();
+                    factor[index] = Scalar::one().neg();
+                }
+                1 => {
+                    factor[index] = Scalar::one();
+                }
+                _ => panic!("Only support (0,1)^v hypercube"),
+            }
+            println!("index:{:?}, w_i:{:?}", index, w_i);
+            println!("factor_i: {:?}", factor);
+            factor
+        };
+
+        for (i, w_i) in w.iter().enumerate() {
+            let factor = gen_X_wi(i, w_i.clone());
+            product = expand_factor_for_mpoly(var_num, product, factor);
+        }
+
+        product
     }
-
 
     fn evaluate(&self, domain: &Vec<usize>) -> Scalar {
         assert_eq!(domain.len(), self.var_num, "Domain is less than var_num");
@@ -141,6 +187,8 @@ todo!()
     }
 }
 
+// TODO impl Fmt for mpoly
+
 #[cfg(test)]
 mod test {
     use crate::utils::*;
@@ -159,6 +207,54 @@ mod test {
 
         let domain = [[0, 0], [0, 1], [1, 0], [1, 1]];
         let evals = [0, 3, 4, 8];
+    }
+
+    #[test]
+    fn test_mpoly_langrange_basis() {
+        // eg: if var_num = 4, w=(0, 0, 1, 1),
+        // so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
+        //             = x_3*x_4 - x_1*x_3*x_4 - x_2*x_3*x_4 + x_1*x_2*x_3*x_4
+        // term3: exp: (0,0,1,1) = x_3*x_4
+        // term7: exp: (0,1,1,1) = -x_2*x_3*x_4
+        // term11: exp: (1,0,1,1) = -x_1*x_3*x_4
+        // term15: exp: (1,1,1,1) = x_1*x_2*x_3*x_4
+        // other term = 0
+
+        let var_num = 4;
+        let n = 1 << var_num;
+        let w = vec![0, 0, 1, 1];
+        let mut target = vec![Scalar::zero(); n];
+        target[3] = Scalar::one();
+        target[7] = Scalar::one().neg();
+        target[11] = Scalar::one().neg();
+        target[15] = Scalar::one();
+
+        let actual = MPolynomial::mpoly_langrange_basis(var_num, w);
+        assert_eq!(actual, target);
+    }
+
+    #[test]
+    fn test_mpoly_langrange_basis2() {
+        // eg: if var_num = 2, w=(0,1),
+        // so that X_w(0,0,1,1)=(1−x1) * x2
+        //             = x2 - x1*x2
+        // term0: exp: (0,0) = 0
+        // term1: exp: (0,1) = x2
+        // term2: exp: (1,0) = 0
+        // term3: exp: (1,1) = - x1*x2
+
+        let var_num = 2;
+        let n = 1 << var_num;
+        let w = vec![0, 1];
+        let target = vec![
+            Scalar::zero(),
+            Scalar::one(),
+            Scalar::zero(),
+            Scalar::one().neg(),
+        ];
+
+        let actual = MPolynomial::mpoly_langrange_basis(var_num, w);
+        assert_eq!(actual, target);
     }
 
     #[test]
