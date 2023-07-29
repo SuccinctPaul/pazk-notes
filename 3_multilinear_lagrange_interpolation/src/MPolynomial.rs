@@ -101,7 +101,6 @@ impl MPolynomial {
     fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
         assert_eq!(var_num, w.len());
         let poly_len = 1 << var_num;
-        let mut product = vec![Scalar::one(); poly_len];
 
         // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
         // factors as below:
@@ -131,7 +130,13 @@ impl MPolynomial {
             factor
         };
 
+        // init with w[0].
+        let mut product = gen_X_wi(0, w[0]);
+
         for (i, w_i) in w.iter().enumerate() {
+            if i == 0 {
+                continue;
+            }
             let factor = gen_X_wi(i, w_i.clone());
             product = expand_factor_for_mpoly(var_num, product, factor);
         }
@@ -234,7 +239,7 @@ mod test {
     }
 
     #[test]
-    fn test_mpoly_langrange_basis2() {
+    fn test_2_mpoly_langrange_basis() {
         // eg: if var_num = 2, w=(0,1),
         // so that X_w(0,0,1,1)=(1−x1) * x2
         //             = x2 - x1*x2
