@@ -5,7 +5,7 @@ members = [
     "2_Freivalds_Algorithm",
     "2_univariate_lagrange_interpolation",
     "3_multilinear_lagrange_interpolation",
-    "4_sum-check",
+    "4_sumcheck",
     "4_GKR",
 ]
 
