@@ -1,15 +1,15 @@
-use crate::prover::Prover;
 /// The Reed-Solomon Fingerprinting case(2.1) in chapter 2
 /// In this case, we'll check whether Alice and Bob has the same file by checking RS-fingerprint.
+mod prover;
+mod utils;
+mod verify;
+
+use crate::prover::Prover;
 use crate::utils::{dump_field_data, read_from_file};
 use crate::verify::Verifier;
 use bls12_381::Scalar;
 use ff::Field;
 use rand_core::{OsRng, RngCore};
-
-mod prover;
-mod utils;
-mod verify;
 
 #[derive(Default, Eq, PartialEq)]
 pub(crate) struct Person {

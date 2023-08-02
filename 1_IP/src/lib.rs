@@ -1,5 +1,6 @@
 /// The interactive proofs case(1.2.1) in chapter 1
-/// In this case, business store data in cloud_provider. Later, before business wants wanna do some computation on cloud_provider, the business check the `data` first.
+/// In this case, business store data in cloud_provider. Later, before business wants wanna do some
+/// computation on cloud_provider, the business check the `data` first.
 mod prover;
 mod utils;
 mod verify;

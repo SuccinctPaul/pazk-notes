@@ -20,9 +20,9 @@ impl Prover {
     }
 
     pub fn hash(&self, x: &Vec<Scalar>) -> Vec<Scalar> {
-        // tmp = Ax
-        let tmp = self.a.matrix_mul_vec(x);
-        // z = B temp
-        self.b.matrix_mul_vec(&tmp)
+        // tmp = Bx
+        let tmp = self.b.matrix_mul_vec(x);
+        // z = A temp = A(Bx)
+        self.a.matrix_mul_vec(&tmp)
     }
 }

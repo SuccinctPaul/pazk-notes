@@ -1,6 +1,6 @@
 use bls12_381::Scalar;
 use ff::Field;
-use rand_core::{OsRng, RngCore};
+use rand_core::OsRng;
 use std::ops::AddAssign;
 
 /// This define `matrix` (rows * cols) （m × n）
@@ -98,6 +98,7 @@ impl Matrix {
 mod test {
     use crate::matrix::Matrix;
     use bls12_381::Scalar;
+    use ff::PrimeField;
 
     #[test]
     fn test_random_matrix() {
@@ -153,5 +154,19 @@ mod test {
         let res = a.matrix_mul_vec(&row_1);
         assert_eq!(row_1, res);
         println!("{:#?}", res);
+    }
+
+    #[test]
+    fn test() {
+        let n = 2;
+        let A = Matrix::random(n, n);
+        let B = Matrix::random(n, n);
+        let x = vec![Scalar::from_u128(3), Scalar::from_u128(5)];
+
+        // A*B*x
+        let res1 = Matrix::mul(&A, &B).matrix_mul_vec(&x);
+        // A*(B*x)
+        let res2 = A.matrix_mul_vec(&B.matrix_mul_vec(&x));
+        assert_eq!(res1, res2);
     }
 }

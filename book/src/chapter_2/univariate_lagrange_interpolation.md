@@ -38,7 +38,8 @@ domain(x), evaluation(y), coefficient(a).
 ### convert
 1. lagrange interpolation : evaluation form -> coefficient form.
    1. evaluate domain:  coefficient form -> evaluation form
-2. gcd: coefficient form -> factorization form.
+2. factor(gcd): coefficient form -> factorization form.
+   expand polynomial: factorization form -> coefficient form.
 
 https://math.libretexts.org/Courses/Angelo_State_University/Finite_Mathematics/01%3A_Algebra_Essentials/1.05%3A_Factoring_Polynomials#:~:text=Howto%3A%20Given%20a%20polynomial%20expression%2C%20factor%20out%20the,of%20the%20terms%20we%20need%20to%20multiply%20by.
 factor polynomials to coefficient
