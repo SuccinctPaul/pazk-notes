@@ -3,9 +3,6 @@
 
 mod gkr;
 
-
-
-
 #[cfg(test)]
 mod test {
     #[test]
