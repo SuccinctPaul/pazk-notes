@@ -2,6 +2,8 @@ use crate::poly::multivar_poly::MPolynomial;
 use crate::poly::univar_poly::Polynomial;
 use crate::sumcheck::prover::Prover;
 use crate::sumcheck::verifier::Verifier;
+use crate::transcript::default::Keccak256Transcript;
+use crate::transcript::{poly_to_bytes, Transcript};
 use bls12_381::Scalar;
 use std::env::var;
 use std::iter::Sum;
@@ -9,50 +11,33 @@ use std::iter::Sum;
 mod prover;
 mod verifier;
 
-struct SumCheck {
-    v: usize,
+#[derive(Default)]
+pub struct Proofs {
+    target: Scalar,
+    g_i_vec: Vec<Polynomial>,
+}
+
+pub struct SumCheck {
     prover: Prover,
     verifier: Verifier,
 }
 
 impl SumCheck {
-    fn new(g: MPolynomial) -> Self {
+    pub fn new(g: MPolynomial) -> Self {
         let var_num = g.var_num;
 
-        let prover = Prover::new(g);
-        let proof = prover.proof();
-        let verifier = Verifier::new(var_num, proof);
+        let prover = Prover::new(var_num, g);
+        let statement = prover.statement();
 
-        Self {
-            v: var_num,
-            prover,
-            verifier,
-        }
+        let verifier = Verifier::new(var_num, statement);
+
+        Self { prover, verifier }
     }
 
-    fn run_protocol(&mut self) {
-        // round 1
-        let g1 = self.prover.round_1();
-        self.verifier.round_1(g1);
+    pub fn run_protocol(&mut self) {
+        let proofs = self.prover.prove();
 
-        // round 2 - (v-1)
-        for j in 2..self.v {
-            let challenges = self.verifier.challenges();
-            let g_j = self.prover.recursive_round_j(&challenges);
-            self.verifier.recursive_round_j(j, g_j);
-            drop(challenges);
-        }
-
-        // round v
-        let challenges = self.verifier.challenges();
-        let g_v = self.prover.round_v(&challenges);
-        self.verifier.round_v(g_v);
-        // drop(challenges);
-
-        // finally check
-        let challenges = self.verifier.challenges();
-        let target = self.prover.evaluate(&challenges);
-        self.verifier.check(target);
+        self.verifier.verify(proofs);
     }
 }
 
