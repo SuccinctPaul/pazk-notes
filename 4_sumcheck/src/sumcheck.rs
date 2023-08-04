@@ -95,7 +95,6 @@ mod test {
 
         let mut sumcheck = SumCheck::new(mpoly);
 
-        // todo! meet error
         sumcheck.run_protocol();
     }
 }

@@ -1,6 +1,8 @@
-use std::net::UdpSocket;
-use sha3::{Digest, Keccak256};
 use crate::transcript::Transcript;
+use bls12_381::Scalar;
+use ff::PrimeField;
+use sha3::{Digest, Keccak256};
+use std::net::UdpSocket;
 
 pub struct Keccak256Transcript {
     hasher: Keccak256,
@@ -11,13 +13,13 @@ impl Transcript for Keccak256Transcript {
         self.hasher.update(&mut new_data.to_owned());
     }
 
-    fn challenge(&mut self) -> Vec<usize> {
+    fn challenge(&mut self) -> usize {
         let mut result_hash = [0_u8; 32];
         result_hash.copy_from_slice(&self.hasher.finalize_reset());
         result_hash.reverse();
         self.hasher.update(result_hash);
-       let u8_array =  result_hash.to_vec();
-        u8_array.iter().map(|&b| b as usize).collect::<Vec<usize>>()
+        let sum = result_hash.to_vec().iter().map(|&b| b as usize).sum();
+        sum
     }
 }
 

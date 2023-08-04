@@ -1,3 +1,5 @@
+#![allow(clippy::map_flatten)]
+#![allow(clippy::ptr_arg)]
 use bls12_381::Scalar;
 
 use crate::poly::univar_poly::Polynomial;
@@ -5,9 +7,10 @@ pub mod default;
 
 pub trait Transcript {
     fn append(&mut self, new_data: &[u8]);
-    fn challenge(&mut self) ->  Vec<usize>;
-}
 
+    // generate r1, r2, ..., rv
+    fn challenge(&mut self) -> usize;
+}
 
 pub(crate) fn poly_to_bytes(poly: &Polynomial) -> Vec<u8> {
     coeffs_to_bytes(&poly.coeffs)
@@ -23,12 +26,12 @@ fn coeffs_to_bytes(coeffs: &Vec<Scalar>) -> Vec<u8> {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::transcript::coeffs_to_bytes;
+    use crate::transcript::default::Keccak256Transcript;
     use bls12_381::Scalar;
     use ff::Field;
     use rand_core::OsRng;
-    use crate::transcript::default::Keccak256Transcript;
-    use super::*;
 
     #[test]
     fn test_coeff_to_transcript() {
