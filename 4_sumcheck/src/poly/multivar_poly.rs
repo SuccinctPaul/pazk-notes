@@ -21,7 +21,7 @@ impl MPolynomial {
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
-    fn lagrange(var_num: usize, evals: &Vec<Scalar>) -> Self {
+    pub fn lagrange(var_num: usize, evals: &Vec<Scalar>) -> Self {
         let n: usize = 1 << var_num;
         assert_eq!(evals.len(), n, "Domain is less than var_num");
 
@@ -55,7 +55,7 @@ impl MPolynomial {
     //      wi = 0, (xiwi +(1−xi)(1−wi))= (1 - xi) ;
     // So it's easy to obtain the factorization form of X_w.
     // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
-    fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
+    pub fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
         assert_eq!(var_num, w.len());
         let poly_len = 1 << var_num;
 
