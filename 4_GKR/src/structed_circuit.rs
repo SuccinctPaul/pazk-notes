@@ -1,25 +1,15 @@
-use bls12_381::Scalar;
-use std::collections::HashMap;
-
-//  A layered arithmetic circuit C with S gates, depth d, and fan-in two (C may have more than one output gate).
-//  Number of layers: 0-d,  0 is output layer, d being the input layer.
-//  Let Si denote the number of gates at layer i of the circuit C.
-#[derive(Clone, Debug)]
-pub struct StructCircuits {
-    pub layers: Vec<CircuitLayer>,
-    pub S: usize, // gates number
-}
-
 // For each layer:
 // Let Si denote the number of gates at layer i of the circuit C. Number the gates at layer i from 0 to Si − 1.
 // Assume Si is a power of 2 and let $Si = 2^{k_i} $.
 //
-//
+// Witness
 // Wi : {0, 1}ki → F denote the function t􏰌hat takes as input a binary gate label,
 //      and outputs the corresponding gate’s value at layer i
 // \widetilde{W_i}:  multilinear extension(MLE) of Wi
 // NOTE: Wi depend on input x to C.
 //
+//
+// Constraints
 // wiring predicate: that encodes which pairs of wires from layeri+1 are connected to a given gate at layeri in C.
 //  Let in_{1,i},in_{2,i}:{0,1}ki →{0,1}ki+1 denote the functions that take as input the label a of a gate at layer i of C,
 //      and respectively output the label of the first and second in-neighbor of gate a.
@@ -35,6 +25,23 @@ pub struct StructCircuits {
 //      todo wiring predicate can be calculated when init-circuit.
 //          input is the public input(instance)
 //          output is the witness
+
+use bls12_381::Scalar;
+use std::collections::HashMap;
+use sumcheck::poly::multivar_poly::MPolynomial;
+
+//  A layered arithmetic circuit C with S gates, depth d, and fan-in two (C may have more than one output gate).
+//  Number of layers: 0-d,  0 is output layer, d being the input layer.
+//  Let Si denote the number of gates at layer i of the circuit C.
+//
+// As wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C, so that we use that here.
+#[derive(Clone, Debug)]
+pub struct StructCircuits {
+    pub layers: Vec<CircuitLayer>,
+    add: Vec<MPolynomial>,
+    mul: Vec<MPolynomial>,
+}
+
 #[derive(Clone, Debug)]
 pub struct CircuitLayer {
     pub add: MPolynomial,
