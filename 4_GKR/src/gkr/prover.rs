@@ -3,6 +3,8 @@ use bls12_381::Scalar;
 pub struct Prover {}
 
 impl Prover {
+    pub fn init() {}
+
     // At the start of the protocol, P sends a function D: {0,1}k0 → F claimed to equal W0
     // (the function mapping output gate labels to output values).
     pub fn proof(&self) -> () {}

@@ -36,10 +36,10 @@ use sumcheck::poly::multivar_poly::MPolynomial;
 //
 // As wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C, so that we use that here.
 #[derive(Clone, Debug)]
-pub struct StructCircuits {
-    pub layers: Vec<CircuitLayer>,
-    add: Vec<MPolynomial>,
-    mul: Vec<MPolynomial>,
+pub struct Constraint {
+    pub layers: Vec<CircuitLayer>, // witness
+    add: Vec<MPolynomial>,         // circuit
+    mul: Vec<MPolynomial>,         //
 }
 
 #[derive(Clone, Debug)]
