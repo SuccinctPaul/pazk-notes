@@ -3,6 +3,7 @@ use bls12_381::Scalar;
 use ff::Field;
 use std::collections::HashMap;
 use std::env::var;
+use std::net::Shutdown::Read;
 use sumcheck::poly::multivar_poly::MPolynomial;
 
 // Operators. for now, they are add and mul.
@@ -21,23 +22,20 @@ pub struct Layer {
 
 // Configure Circuit Constraints. We assume circuit is layered one, whose gates have fan-in-2 and fan-out-1.
 #[derive(Clone, Default)]
-pub struct CircuitConfigure {
-    // from layer 0 to d-1.
-    pub layers: Vec<Layer>,
-    // input_layer_len = 2^input_var_num. input is layer-d
-    pub input_var_num: usize,
-    // layer depth, from 0 to depth. depth -1 = layers.len.
-    pub depth: usize,
+pub struct CircuitConfig {
+    pub layers: Vec<Layer>,   // from layer 0 to d-1.
+    pub input_var_num: usize, // input_layer_len = 2^input_var_num. input is layer-d
+    pub depth: usize,         // layer depth, from 0 to depth. depth -1 = layers.len.
 }
 
-impl CircuitConfigure {
+impl CircuitConfig {
     pub fn evaluate(&self, inputs: &Vec<Scalar>) -> Vec<Scalar> {
         assert_eq!(self.layers.len(), self.depth - 1);
         let max_n = 1 << self.input_var_num;
         assert_eq!(inputs.len(), max_n);
 
         // start with layer d(input layer)
-        let mut layer_i_plus_1_values = inputs.clone();
+        let mut layer_i_plus_1 = inputs.clone();
 
         // from layer d-1 to layer 0(output layer).
         for i in (0..(self.depth - 1)).rev() {
@@ -51,23 +49,66 @@ impl CircuitConfigure {
             // iter each gate in layer_i
             for gate in gates {
                 let gate_output = match gate {
-                    ADD(left, right) => {
-                        layer_i_plus_1_values[*left] + layer_i_plus_1_values[*right]
-                    }
-                    MUL(left, right) => {
-                        layer_i_plus_1_values[*left] * layer_i_plus_1_values[*right]
-                    }
+                    ADD(left, right) => layer_i_plus_1[*left] + layer_i_plus_1[*right],
+                    MUL(left, right) => layer_i_plus_1[*left] * layer_i_plus_1[*right],
                 };
                 layer_i_outputs.push(gate_output);
             }
             assert_eq!(layer_i_outputs.len(), gates_num);
 
             // prepare for next iter.
-            layer_i_plus_1_values = layer_i_outputs.clone();
+            layer_i_plus_1 = layer_i_outputs.clone();
         }
 
         // after iter, will calculate output.
-        layer_i_plus_1_values.clone()
+        layer_i_plus_1.clone()
+    }
+
+    pub fn witness_to_poly(&self, inputs: &Vec<Scalar>) -> Vec<MPolynomial> {
+        assert_eq!(self.layers.len(), self.depth - 1);
+        let max_n = 1 << self.input_var_num;
+        assert_eq!(inputs.len(), max_n);
+
+        // At start, the mpoly in result start from layer d to 0.
+        // However, we'll inverse it to adopt from layer 0 to d.
+        let mut result = vec![];
+
+        // start with layer d(input layer)
+        let input_mpoly = MPolynomial::lagrange(self.input_var_num, inputs);
+        result.push(input_mpoly);
+
+        let mut layer_i_plus_1 = inputs.clone();
+
+        // from layer d-1 to layer 0(output layer).
+        for i in (0..(self.depth - 1)).rev() {
+            let layer_i = self.layers.get(i).expect("Can't capture layer_i");
+            let gates_num = 1 << layer_i.var_num;
+            let gates = &layer_i.gates;
+            assert_eq!(gates.len(), gates_num);
+
+            let mut layer_i_outputs = vec![];
+
+            // iter each gate in layer_i
+            for gate in gates {
+                let gate_output = match gate {
+                    ADD(left, right) => layer_i_plus_1[*left] + layer_i_plus_1[*right],
+                    MUL(left, right) => layer_i_plus_1[*left] * layer_i_plus_1[*right],
+                };
+                layer_i_outputs.push(gate_output);
+            }
+            assert_eq!(layer_i_outputs.len(), gates_num);
+
+            let layer_i_mpoly = MPolynomial::lagrange(layer_i.var_num, &layer_i_outputs);
+            result.push(layer_i_mpoly);
+
+            // prepare for next iter.
+            layer_i_plus_1 = layer_i_outputs.clone();
+        }
+
+        assert_eq!(result.len(), self.depth);
+        // after iter, will calculate output.
+        result.reverse();
+        result
     }
 
     // Obtain the addi and muli mpoly from the circuit.
@@ -138,7 +179,7 @@ mod test {
     use sumcheck::utils::convert_from_binary;
 
     // sample from Figure 4.12.
-    fn simple_circuit() -> CircuitConfigure {
+    fn simple_circuit() -> CircuitConfig {
         let input_var_num: usize = 2;
 
         let layer_1 = Layer {
@@ -152,7 +193,7 @@ mod test {
         };
 
         // Return layer
-        CircuitConfigure {
+        CircuitConfig {
             layers: vec![output_layer, layer_1],
             input_var_num,
             depth: 3,
@@ -169,10 +210,43 @@ mod test {
         ];
 
         let circuit = simple_circuit();
-        let output = circuit.evaluate(&inputs);
-        println!("output:{:?}", output);
+        // evaluate the circuit with input
+        let actual = circuit.evaluate(&inputs);
+
         let expected = vec![Scalar::from_u128(4), Scalar::from_u128(32)];
-        assert_eq!(expected, output);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_witness_to_poly() {
+        let inputs = vec![
+            Scalar::one(),
+            Scalar::from_u128(2),
+            Scalar::one(),
+            Scalar::from_u128(4),
+        ];
+
+        let circuit = simple_circuit();
+        let actual = circuit.witness_to_poly(&inputs);
+
+        // Expect
+        let input_mpoly = MPolynomial::lagrange(2, &inputs);
+        // layer_1 values: [1, 4, 2, 16]
+        let layer_1_mpoly = MPolynomial::lagrange(
+            2,
+            &vec![
+                Scalar::one(),
+                Scalar::from_u128(4),
+                Scalar::from_u128(2),
+                Scalar::from_u128(16),
+            ],
+        );
+        // layer_0 values: [4, 32]
+        let layer_0_mpoly =
+            MPolynomial::lagrange(1, &vec![Scalar::from_u128(4), Scalar::from_u128(32)]);
+
+        let expected = vec![layer_0_mpoly, layer_1_mpoly, input_mpoly];
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -195,10 +269,10 @@ mod test {
             MPolynomial::lagrange(var_num_1, &mult_1_evals),
         );
         // test MPolynomial::lagrange.
-        assert_eq!(mpoly_1.1.evaluate(&vec![0,1,0,1,0,1]),  Scalar::one());
-        assert_eq!(mpoly_1.1.evaluate(&vec![1,0,0,1,1,0]),  Scalar::one());
-        assert_eq!(mpoly_1.1.evaluate(&vec![1,1,1,1,1,1]),  Scalar::one());
-        assert_eq!(mpoly_1.1.evaluate(&vec![1,1,1,0,1,1]),  Scalar::zero());
+        assert_eq!(mpoly_1.1.evaluate(&vec![0, 1, 0, 1, 0, 1]), Scalar::one());
+        assert_eq!(mpoly_1.1.evaluate(&vec![1, 0, 0, 1, 1, 0]), Scalar::one());
+        assert_eq!(mpoly_1.1.evaluate(&vec![1, 1, 1, 1, 1, 1]), Scalar::one());
+        assert_eq!(mpoly_1.1.evaluate(&vec![1, 1, 1, 0, 1, 1]), Scalar::zero());
 
         // layer 1, add and mult mpoly
         let var_num_0 = 1 + 2 * 2;
