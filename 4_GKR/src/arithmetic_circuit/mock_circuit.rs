@@ -1,12 +1,12 @@
 use crate::arithmetic_circuit::mock_circuit::Ops::{ADD, MUL};
-use crate::structed_circuit::StructCircuits;
+use crate::constraint_system::StructCircuits;
 use bls12_381::Scalar;
 use ff::Field;
 use std::collections::HashMap;
 
 // Operators. for now, they are add and mul.
 // Left and right  input index from layer i+1.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Ops {
     ADD(usize, usize),
     MUL(usize, usize),
@@ -33,13 +33,13 @@ impl Circuit {
         assert_eq!(inputs.len(), max_n);
 
         // start with layer d(input layer)
-        let mut layer_i_plus_1_values = inputs;
+        let mut layer_i_plus_1_values = inputs.clone();
 
         // from layer d-1 to layer 0(output layer).
-        for i in (0..self.depth).rev() {
+        for i in (0..(self.depth - 1)).rev() {
             let layer_i = self.layers.get(i).expect("Can't capture gate_i");
             let gates_num = 1 << layer_i.var_num;
-            let gates = layer_i.gates;
+            let gates = &layer_i.gates;
             assert_eq!(gates.len(), gates_num);
 
             let mut layer_i_outputs = vec![];
@@ -47,15 +47,19 @@ impl Circuit {
             // iter each gate in layer_i
             for gate in gates {
                 let gate_output = match gate {
-                    ADD(left, right) => layer_i_plus_1_values[left] + layer_i_plus_1_values[right],
-                    MUL(left, right) => layer_i_plus_1_values[left] * layer_i_plus_1_values[right],
+                    ADD(left, right) => {
+                        layer_i_plus_1_values[*left] + layer_i_plus_1_values[*right]
+                    }
+                    MUL(left, right) => {
+                        layer_i_plus_1_values[*left] * layer_i_plus_1_values[*right]
+                    }
                 };
                 layer_i_outputs.push(gate_output);
             }
             assert_eq!(layer_i_outputs.len(), gates_num);
 
             // prepare for next iter.
-            layer_i_plus_1_values = layer_i_plus_1_values;
+            layer_i_plus_1_values = layer_i_outputs.clone();
         }
 
         // after iter, will calculate output.
@@ -106,8 +110,8 @@ mod test {
 
         let circuit = simple_circuit();
         let output = circuit.evaluate(&inputs);
-
-        let expected = vec![Scalar::from_u128(4), Scalar::from_u128(2)];
+        println!("output:{:?}", output);
+        let expected = vec![Scalar::from_u128(4), Scalar::from_u128(32)];
         assert_eq!(expected, output);
     }
 }

@@ -2,9 +2,9 @@
 // https://github.com/jeong0982/gkr
 
 pub mod arithmetic_circuit;
+pub mod constraint_system;
 pub mod gkr;
 pub mod poly;
-pub mod structed_circuit;
 pub mod sumcheck;
 
 #[cfg(test)]
