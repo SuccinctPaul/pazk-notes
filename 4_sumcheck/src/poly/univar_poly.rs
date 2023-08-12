@@ -44,4 +44,16 @@ impl Polynomial {
             parts.iter().fold(Scalar::zero(), |acc, coeff| acc + coeff)
         }
     }
+
+    // fn mul(&self, poly: &Self) -> Self {
+    //     // todo!(first impl this.)
+    //
+    // }
+}
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn test_mul_poly() {}
 }

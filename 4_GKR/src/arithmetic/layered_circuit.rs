@@ -1,10 +1,10 @@
 use crate::arithmetic::layered_circuit::Ops::{ADD, MUL};
+use crate::poly::MPolynomial;
 use bls12_381::Scalar;
 use ff::Field;
 use std::collections::HashMap;
 use std::env::var;
 use std::net::Shutdown::Read;
-use sumcheck::poly::multivar_poly::MPolynomial;
 
 // Operators. for now, they are add and mul.
 // Left and right  input index from layer i+1.
@@ -111,11 +111,11 @@ impl CircuitConfig {
         result
     }
 
-    // Obtain the addi and muli mpoly from the circuit.
+    // Obtain the addi and multi mpoly from the circuit.
     // eg:  mult0 is the function defined over domain {0,1}×{0,1}2 ×{0,1}2 as follows. mult0 evaluates
     //      to 1 on the following two inputs: (0,(0,0),(0,1)) and (1,(1,0),(1,1)). On all other inputs,
     //      mult0 evaluates to zero.
-    fn ops_to_mpoly(&self) -> Vec<(MPolynomial, MPolynomial)> {
+    pub(crate) fn ops_to_mpoly(&self) -> Vec<(MPolynomial, MPolynomial)> {
         // result ares vector of (addi_mpoly, multi_mpoly).
         let mut result = Vec::with_capacity(self.depth - 1);
 
@@ -175,8 +175,8 @@ impl CircuitConfig {
 mod test {
     use super::*;
     use crate::arithmetic::layered_circuit::Ops::MUL;
+    use crate::utils::convert_from_binary;
     use ff::PrimeField;
-    use sumcheck::utils::convert_from_binary;
 
     // sample from Figure 4.12.
     fn simple_circuit() -> CircuitConfig {

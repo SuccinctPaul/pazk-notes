@@ -10,7 +10,7 @@ use std::ops::{Add, AddAssign};
 // A multivariate polynomial g is multilinear if the degree of the polynomial in each variable is at most one.
 // For example, the polynomial g(x1,x2) = x_1*x_2 +4x_1 +3x_2 is multilinear, but the polynomial
 // h(x1,x2) = x2 + 4x1 + 3x2 is not.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct MPolynomial {
     pub var_num: usize,
     // The index (with binary form) is the exponent values.
@@ -249,6 +249,18 @@ impl MPolynomial {
             })
             .collect::<Vec<_>>();
         Polynomial { coeffs }
+    }
+
+    // sum all the evaluations on hypercube of a mpoly
+    // Porting from sumcheck::Prover::proof()
+    pub fn sum_all_evals(&self) -> Scalar {
+        let n = 1 << self.var_num;
+        (0..n)
+            .map(|i| {
+                let domain = convert_to_binary(&self.var_num, i);
+                self.evaluate(&domain)
+            })
+            .sum()
     }
 }
 

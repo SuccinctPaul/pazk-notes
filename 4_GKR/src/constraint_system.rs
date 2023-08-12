@@ -26,15 +26,15 @@
 //          input is the public input(instance)
 //          output is the witness
 
+use crate::poly::MPolynomial;
 use bls12_381::Scalar;
 use std::collections::HashMap;
-use sumcheck::poly::multivar_poly::MPolynomial;
 
 //  A layered arithmetic circuit C with S gates, depth d, and fan-in two (C may have more than one output gate).
 //  Number of layers: 0-d,  0 is output layer, d being the input layer.
 //  Let Si denote the number of gates at layer i of the circuit C.
 //
-// As wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C, so that we use that here.
+//  As wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C, so that we use that here.
 #[derive(Clone, Debug)]
 pub struct Constraint {
     pub layers: Vec<CircuitLayer>, // witness

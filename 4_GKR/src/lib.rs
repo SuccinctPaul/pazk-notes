@@ -4,8 +4,8 @@
 pub mod arithmetic;
 pub mod constraint_system;
 pub mod gkr;
+pub mod gkr_sumcheck;
 pub mod poly;
-pub mod sumcheck;
 pub mod utils;
 
 #[cfg(test)]
