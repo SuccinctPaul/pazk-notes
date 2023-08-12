@@ -19,12 +19,13 @@ pub struct GKR {
 impl GKR {
     // Init with layer-circuit
     pub fn init(config: CircuitConfig) -> Self {
+        let d = config.depth;
         let mut prover = Prover::init(config);
 
         Self {
             prover,
             verifier: Verifier::default(),
-            d: config.depth,
+            d,
         }
     }
 

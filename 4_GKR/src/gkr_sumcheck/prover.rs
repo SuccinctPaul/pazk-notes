@@ -2,18 +2,27 @@ use crate::gkr_sumcheck::F_r_Poly;
 use crate::poly::{MPolynomial, Polynomial};
 use crate::utils::convert_to_binary;
 use bls12_381::Scalar;
+use std::ops::{Add, Mul};
 use std::path::Iter;
 
-pub struct Prover<'a> {
-    add: &'a MPolynomial,
-    mult: &'a MPolynomial,
-    w_i_plus_1: &'a MPolynomial,
-    r_i: &'a Vec<usize>, // the constant var part.
+pub struct Prover {
+    v_l: usize, // the constants_part var_num.  v_l + v_r = ki + 2*k_i_plus_1
+    v_r: usize, // the variable_part var_num. equals to `v` in standard sumcheck.
+    add: MPolynomial,
+    mult: MPolynomial,
+    w_i_plus_1: MPolynomial,
+    r_i: Vec<usize>, // the constant var part.
 }
 
-impl Prover<'_> {
-    pub fn new((add, mult, w_i_plus_1): F_r_Poly, r_i: &Vec<usize>) -> Self {
+impl Prover {
+    pub fn new(
+        (v_l, v_r): (usize, usize),
+        (add, mult, w_i_plus_1): F_r_Poly,
+        r_i: Vec<usize>,
+    ) -> Self {
         Self {
+            v_l,
+            v_r,
             add,
             mult,
             w_i_plus_1,
@@ -61,21 +70,52 @@ impl Prover<'_> {
 
         let poly_w_a = self.w_i_plus_1.partial_evaluate(&vec![]);
         let w_b = self.w_i_plus_1.sum_all_evals();
-        // poly_add.mul(poly_w_a)
+
+        // poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
         poly_add
+            .mul(&poly_w_a)
+            .add(&poly_add.mul(&w_b).add(&poly_mult.mul(&poly_w_a).mul(&w_b)))
     }
 
-    // // 1 < j < v, total v-2 rounds
-    // // Return g_j = (r1, ..., r_j-1, X, x_j+1, ..., x_v)
-    // pub fn recursive_round_j(&self, challenges: &Vec<usize>) -> Polynomial {
-    //     self.g.partial_evaluate(challenges)
-    // }
-    //
-    // // Return g_v = (r1, r2, ..., r_v-1, X_v)
-    // pub fn round_v(&self, challenges: &Vec<usize>) -> Polynomial {
-    //     self.g.partial_evaluate(challenges)
-    // }
-    //
+    // 1 < j < v_r, total v_r-2 rounds
+    // Return g_j = (r1, ..., r_j-1, X, x_j+1, ..., x_v)
+    pub fn recursive_round_j(&self, challenges: &Vec<usize>) -> Polynomial {
+        assert!(self.v_r > challenges.len() || challenges.len() >= 1);
+
+        // partial_evaluate with (r_i, challenge, X, x_i)
+        let mut ops_challenge_domain = self.r_i.clone();
+        ops_challenge_domain.append(&mut challenges.clone());
+        let poly_add = self.add.partial_evaluate(&ops_challenge_domain);
+        let poly_mult = self.mult.partial_evaluate(&ops_challenge_domain);
+
+        let poly_w_a = self.w_i_plus_1.partial_evaluate(challenges);
+        let w_b = self.w_i_plus_1.sum_all_evals();
+
+        // poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
+        poly_add
+            .mul(&poly_w_a)
+            .add(&poly_add.mul(&w_b).add(&poly_mult.mul(&poly_w_a).mul(&w_b)))
+    }
+
+    // Return g_v = (r1, r2, ..., r_v-1, X_v)
+    pub fn round_v(&self, challenges: &Vec<usize>) -> Polynomial {
+        assert_eq!(self.v_r - 1, challenges.len());
+
+        // partial_evaluate with (r_i, challenge, X, x_i)
+        let mut ops_challenge_domain = self.r_i.clone();
+        ops_challenge_domain.append(&mut challenges.clone());
+        let poly_add = self.add.partial_evaluate(&ops_challenge_domain);
+        let poly_mult = self.mult.partial_evaluate(&ops_challenge_domain);
+
+        let poly_w_a = self.w_i_plus_1.partial_evaluate(challenges);
+        let w_b = self.w_i_plus_1.sum_all_evals();
+
+        // poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
+        poly_add
+            .mul(&poly_w_a)
+            .add(&poly_add.mul(&w_b).add(&poly_mult.mul(&poly_w_a).mul(&w_b)))
+    }
+
     // pub fn evaluate(&self, challenges: &Vec<usize>) -> Scalar {
     //     self.g.evaluate(challenges)
     // }
