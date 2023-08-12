@@ -44,16 +44,85 @@ impl Polynomial {
             parts.iter().fold(Scalar::zero(), |acc, coeff| acc + coeff)
         }
     }
+}
 
-    // fn mul(&self, poly: &Self) -> Self {
-    //     // todo!(first impl this.)
-    //
-    // }
+impl std::ops::Mul<&Polynomial> for &Polynomial {
+    type Output = Polynomial;
+    fn mul(self, rhs: &Polynomial) -> Self::Output {
+        let mut coeffs: Vec<Scalar> =
+            vec![Scalar::zero(); self.coeffs.len() + rhs.coeffs.len() - 1];
+        for n in 0..self.coeffs.len() {
+            for m in 0..rhs.coeffs.len() {
+                coeffs[n + m] += self.coeffs[n] * rhs.coeffs[m];
+            }
+        }
+        Self::Output { coeffs }
+    }
+}
+
+impl std::ops::Mul<&Scalar> for &Polynomial {
+    type Output = Polynomial;
+    fn mul(self, rhs: &Scalar) -> Self::Output {
+        let coeffs = if rhs == &Scalar::zero() {
+            vec![Scalar::zero()]
+        } else {
+            self.coeffs.iter().map(|c| c * rhs).collect::<Vec<Scalar>>()
+        };
+        Self::Output { coeffs }
+    }
+}
+
+impl std::ops::Add<&Polynomial> for &Polynomial {
+    type Output = Polynomial;
+
+    fn add(self, rhs: &Polynomial) -> Self::Output {
+        let max_len = std::cmp::max(self.coeffs.len(), rhs.coeffs.len());
+        let coeffs = (0..max_len)
+            .into_iter()
+            .map(|n| {
+                if n >= self.coeffs.len() {
+                    rhs.coeffs[n]
+                } else if n >= rhs.coeffs.len() {
+                    self.coeffs[n]
+                } else {
+                    // n < self.0.len() && n < rhs.0.len()
+                    self.coeffs[n] + rhs.coeffs[n]
+                }
+            })
+            .collect::<Vec<Scalar>>();
+        Self::Output { coeffs }
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    use ff::PrimeField;
+    use std::ops::{Add, Mul};
 
     #[test]
-    fn test_mul_poly() {}
+    fn test_mul_poly() {
+        // p = 1 - x
+        let p = Polynomial {
+            coeffs: vec![Scalar::one(), Scalar::one().neg()],
+        };
+        // q = 1 + x
+        let q = Polynomial {
+            coeffs: vec![Scalar::one(), Scalar::one()],
+        };
+
+        assert_eq!(
+            p.mul(&q).coeffs,
+            vec![Scalar::one(), Scalar::zero(), Scalar::one().neg()]
+        );
+
+        // add
+        assert_eq!(p.add(&q).coeffs, vec![Scalar::from_u128(2), Scalar::zero()]);
+
+        // poly.mul(scalar)
+        assert_eq!(
+            p.mul(&Scalar::from_u128(5)).coeffs,
+            vec![Scalar::from_u128(5), Scalar::from_u128(5).neg()]
+        );
+    }
 }

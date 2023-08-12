@@ -54,13 +54,15 @@ impl Prover<'_> {
     // Return g1(x) = add(r_i, (X, a2, ...,a_k_1), (b1, ..., b_k_1) * (W(X, a2, ...,a_k_1) + W(b1,...,b_k_1))
     //              + mult(r_i, (X, a2, ...,a_k_1), (b1, ..., b_k_1) * (W(X, a2, ...,a_k_1) * W(b1,...,b_k_1))
     //              = poly_add * (poly_w_a + w_b) + poly_mult * (poly_w_a * w_b)
+    //              = poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
     pub fn round_1(&self) -> Polynomial {
         let poly_add = self.add.partial_evaluate(&self.r_i);
         let poly_mult = self.mult.partial_evaluate(&self.r_i);
 
         let poly_w_a = self.w_i_plus_1.partial_evaluate(&vec![]);
         let w_b = self.w_i_plus_1.sum_all_evals();
-        poly_w_a //todo
+        // poly_add.mul(poly_w_a)
+        poly_add
     }
 
     // // 1 < j < v, total v-2 rounds
