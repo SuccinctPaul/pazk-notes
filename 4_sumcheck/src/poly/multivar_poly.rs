@@ -392,5 +392,30 @@ mod test {
 
         let actual = poly.evaluate(&domain);
         assert_eq!(target, actual);
+
+        // let g(x1, x2, x3) = 5 + 2*x3 + 3*x2 +  x1 * x2 * x3
+        assert_eq!(poly.evaluate(&vec![3, 2, 1]), Scalar::from_u128(19))
+    }
+
+    #[test]
+    fn test_evaluate_uni_var() {
+        // let g(x1) = 4 + 28*x1
+        // term0: exp: (0) = 4
+        // term1: exp: (1) = 28*x
+
+        let var_num = 1;
+
+        let poly = MPolynomial {
+            var_num,
+            coeffs: vec![Scalar::from_u128(4), Scalar::from_u128(28)],
+        };
+
+        println!("{:?}", poly);
+
+        // target = 0x58
+        let target = Scalar::from_u128(5 * 16 + 8);
+
+        let actual = poly.evaluate(&vec![3]);
+        assert_eq!(target, actual);
     }
 }

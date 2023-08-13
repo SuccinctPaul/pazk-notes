@@ -70,6 +70,11 @@ impl Prover {
         let poly_w_a = self.w_i_plus_1.partial_evaluate(&vec![]);
         let w_b = self.w_i_plus_1.sum_all_evals();
 
+        assert_eq!(
+            w_b,
+            poly_w_a.evaluate(Scalar::one()) + poly_w_a.evaluate(Scalar::zero())
+        );
+
         // poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
         poly_add
             .mul(&poly_w_a)

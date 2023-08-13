@@ -19,6 +19,7 @@ impl Verifier {
     ) -> (Vec<usize>, Scalar) {
         //  V pick a challenge r_0( $r0∈Fk0$ ) and let $m_{0}=\widetilde{D}(r_0)$
         let r_0 = Self::gen_challenge(output.var_num);
+        // let r_0 = vec![3]; // used for debug
         let m0 = output.evaluate(&r_0);
 
         // Encode the inputs as Mpoly.
