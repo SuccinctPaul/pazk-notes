@@ -9,6 +9,8 @@ members = [
     "4_GKR",
     "5_Fiat_Shamir",
     "5_ni_sumcheck",
+    "10_IOP-based-pcs",
+    "10_r1cs_IOP",
 ]
 
 resolver = "2"
