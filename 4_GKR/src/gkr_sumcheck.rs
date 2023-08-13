@@ -31,19 +31,16 @@ pub struct GkrSumCheck {
 type F_r_Poly = (MPolynomial, MPolynomial, MPolynomial);
 
 impl GkrSumCheck {
-    pub fn init((v_l, v_r): (usize, usize), g: F_r_Poly, r_i: Vec<usize>) -> Self {
+    pub fn init(g: F_r_Poly, r_i: Vec<usize>, m_i: Scalar) -> Self {
         assert_eq!(g.0.var_num, g.1.var_num);
+        let (v_l, v_r) = (r_i.len(), 2 * g.2.var_num);
         assert_eq!(g.0.var_num, v_l + v_r);
-        assert_eq!(r_i.len(), v_l);
-        assert_eq!(g.2.var_num, v_r / 2); // w_i_plus_1
 
-        let prover = Prover::new((v_l, v_r), g, r_i);
-        let proof = prover.proof();
-        let verifier = Verifier::new(v_r, proof);
+        let prover = Prover::new(g, r_i);
+        let verifier = Verifier::new(v_r, m_i);
 
         Self {
             v_r,
-            // r_i,
             prover,
             verifier,
         }

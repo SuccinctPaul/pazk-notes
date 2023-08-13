@@ -15,11 +15,9 @@ pub struct Prover {
 }
 
 impl Prover {
-    pub fn new(
-        (v_l, v_r): (usize, usize),
-        (add, mult, w_i_plus_1): F_r_Poly,
-        r_i: Vec<usize>,
-    ) -> Self {
+    pub fn new((add, mult, w_i_plus_1): F_r_Poly, r_i: Vec<usize>) -> Self {
+        let (v_l, v_r) = (r_i.len(), 2 * w_i_plus_1.var_num);
+
         Self {
             v_l,
             v_r,
@@ -30,7 +28,8 @@ impl Prover {
         }
     }
 
-    // obtain m1 by $\sum_{b,c \in (0,1)^{k_{i+1}}}f_{r_i} = m_i $ , m1 means C1.
+    // obtain m0 by $\sum_{b,c \in (0,1)^{k_{i+1}}}f_{r_i} = m_i $ , m1 means C1.
+    #[deprecated]
     pub fn proof(&self) -> Scalar {
         let k_i_plus_1 = self.w_i_plus_1.var_num;
 

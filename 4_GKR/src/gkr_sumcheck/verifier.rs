@@ -4,7 +4,7 @@ use ff::{Field, PrimeField};
 use rand_core::{OsRng, RngCore};
 
 pub struct Verifier {
-    proof: Scalar, // C1 in sumcheck, means mi in GKR.
+    proof: Scalar, // C1 in sumcheck, <==> mi in GKR.
     v: usize,
     cached_g_j: Vec<Polynomial>,
     challenges: Vec<usize>, // challenges: r1, r2, ..., rv. (In implement, r1 is a random usize, which is easy to construct a Field)

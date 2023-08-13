@@ -64,7 +64,7 @@ impl CircuitConfig {
         layer_i_plus_1.clone()
     }
 
-    pub fn witness_to_poly(&self, inputs: &Vec<Scalar>) -> Vec<MPolynomial> {
+    pub fn witness_to_poly(&self, inputs: &Vec<Scalar>) -> (Vec<MPolynomial>, Vec<Scalar>) {
         assert_eq!(self.layers.len(), self.depth - 1);
         let max_n = 1 << self.input_var_num;
         assert_eq!(inputs.len(), max_n);
@@ -102,13 +102,14 @@ impl CircuitConfig {
             result.push(layer_i_mpoly);
 
             // prepare for next iter.
+            // Last round -  layer_i_plus_1=output.
             layer_i_plus_1 = layer_i_outputs.clone();
         }
 
         assert_eq!(result.len(), self.depth);
         // after iter, will calculate output.
         result.reverse();
-        result
+        (result, layer_i_plus_1.clone())
     }
 
     // Obtain the addi and multi mpoly from the circuit.
@@ -227,7 +228,7 @@ mod test {
         ];
 
         let circuit = simple_circuit();
-        let actual = circuit.witness_to_poly(&inputs);
+        let (actual, _) = circuit.witness_to_poly(&inputs);
 
         // Expect
         let input_mpoly = MPolynomial::lagrange(2, &inputs);
