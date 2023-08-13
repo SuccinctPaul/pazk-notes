@@ -6,17 +6,17 @@ use bls12_381::Scalar;
 use std::env::var;
 use std::iter::Sum;
 
-mod prover;
-mod verifier;
+pub mod prover;
+pub mod verifier;
 
-struct SumCheck {
+pub struct SumCheck {
     v: usize,
     prover: Prover,
     verifier: Verifier,
 }
 
 impl SumCheck {
-    fn new(g: MPolynomial) -> Self {
+    pub fn new(g: MPolynomial) -> Self {
         let var_num = g.var_num;
 
         let prover = Prover::new(g);
@@ -30,7 +30,7 @@ impl SumCheck {
         }
     }
 
-    fn run_protocol(&mut self) {
+    pub fn run_protocol(&mut self) {
         // round 1
         let g1 = self.prover.round_1();
         self.verifier.round_1(g1);
