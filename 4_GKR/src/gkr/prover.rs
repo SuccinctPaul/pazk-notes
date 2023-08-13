@@ -40,28 +40,4 @@ impl Prover {
     pub fn outputs(&self) -> Vec<Scalar> {
         self.outputs.clone()
     }
-
-    // GKR-gkr_sumcheck-Round 1
-    //  P send $m_i = \sum_{b,c\in{0,1}^{i+1}} f_{r_i}(b,c)$
-    // pub fn claim_mi(&self, layer_i: usize, r_i: &Vec<usize>) -> Scalar {}
-
-    // At the start of the protocol, P sends a function D: {0,1}^{k_0} → F claimed to equal W0
-    // (the function mapping output gate labels to output values).
-    // each layer has its claims, which means it's witness of the layer.
-    pub fn claims(&self, depth: usize) -> Vec<Scalar> {
-        // output, the layer 0.
-        todo!()
-    }
-
-    pub fn round_1(&self) -> () {
-        todo!()
-    }
-
-    // total d round: i=0,1,...,d−1
-    pub fn round_i(&self) -> () {
-        todo!()
-    }
-
-    // Define the (2ki+1)-variate polynomial
-    pub fn gen_f_ri() {}
 }

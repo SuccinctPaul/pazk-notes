@@ -112,6 +112,13 @@ impl CircuitConfig {
         (result, layer_i_plus_1.clone())
     }
 
+    //  A layered arithmetic circuit C with S gates, depth d, and fan-in two (C may have more than one output gate).
+    //  Number of layers: 0-d,  0 is output layer, d being the input layer.
+    //  Let Si denote the number of gates at layer i of the circuit C.
+    //
+    //  As wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C, so that we use that here.
+    //
+    //
     // Obtain the addi and multi mpoly from the circuit.
     // eg:  mult0 is the function defined over domain {0,1}×{0,1}2 ×{0,1}2 as follows. mult0 evaluates
     //      to 1 on the following two inputs: (0,(0,0),(0,1)) and (1,(1,0),(1,1)). On all other inputs,
