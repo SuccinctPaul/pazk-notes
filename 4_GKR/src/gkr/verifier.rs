@@ -6,7 +6,6 @@ use std::os::unix::raw::mode_t;
 
 #[derive(Clone, Debug, Default)]
 pub struct Verifier {
-    output: MPolynomial,
     m0: Scalar,
     w_d: MPolynomial,
 }
@@ -25,7 +24,6 @@ impl Verifier {
         // Encode the inputs as Mpoly.
         let w_d = MPolynomial::lagrange(input_var_num, inputs);
 
-        self.output = output;
         self.m0 = m0;
         self.w_d = w_d;
         (r_0, m0)

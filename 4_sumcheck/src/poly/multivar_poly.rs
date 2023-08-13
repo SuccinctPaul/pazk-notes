@@ -237,17 +237,21 @@ impl MPolynomial {
         }
 
         // map -> poly
-        // println!("map:{:?}", map);
-        let max_key = map.keys().max().unwrap().clone();
-        let coeffs = (0..=max_key)
-            .map(|i: usize| {
-                if map.contains_key(&i) {
-                    map.get(&i).unwrap().clone()
-                } else {
-                    Scalar::zero()
-                }
-            })
-            .collect::<Vec<_>>();
+        let coeffs = if map.is_empty() {
+            vec![Scalar::zero()]
+        } else {
+            let max_key = map.keys().max().unwrap().clone();
+            let coeffs = (0..=max_key)
+                .map(|i: usize| {
+                    if map.contains_key(&i) {
+                        map.get(&i).unwrap().clone()
+                    } else {
+                        Scalar::zero()
+                    }
+                })
+                .collect::<Vec<_>>();
+            coeffs
+        };
         Polynomial { coeffs }
     }
 
