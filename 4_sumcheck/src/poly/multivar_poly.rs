@@ -10,7 +10,7 @@ use std::ops::{Add, AddAssign};
 // A multivariate polynomial g is multilinear if the degree of the polynomial in each variable is at most one.
 // For example, the polynomial g(x1,x2) = x_1*x_2 +4x_1 +3x_2 is multilinear, but the polynomial
 // h(x1,x2) = x2 + 4x1 + 3x2 is not.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct MPolynomial {
     pub var_num: usize,
     // The index (with binary form) is the exponent values.
@@ -21,7 +21,7 @@ impl MPolynomial {
     // w: {0,1}^v
     // F(x_1,...,x_v) = ∑f(w)·X_w(x_1,...,x_v),
     // X_w(x1,...,xv) := ∏(xiwi +(1−xi)(1−wi)).
-    fn lagrange(var_num: usize, evals: &Vec<Scalar>) -> Self {
+    pub fn lagrange(var_num: usize, evals: &Vec<Scalar>) -> Self {
         let n: usize = 1 << var_num;
         assert_eq!(evals.len(), n, "Domain is less than var_num");
 
@@ -55,7 +55,7 @@ impl MPolynomial {
     //      wi = 0, (xiwi +(1−xi)(1−wi))= (1 - xi) ;
     // So it's easy to obtain the factorization form of X_w.
     // eg: if var_num = 4, w=(0, 0, 1, 1), so that X_w(0,0,1,1)=(1-x_1)(1-x_2) * x_3 * x_4
-    fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
+    pub fn mpoly_langrange_basis(var_num: usize, w: Vec<usize>) -> Vec<Scalar> {
         assert_eq!(var_num, w.len());
         let poly_len = 1 << var_num;
 
@@ -237,18 +237,34 @@ impl MPolynomial {
         }
 
         // map -> poly
-        // println!("map:{:?}", map);
-        let max_key = map.keys().max().unwrap().clone();
-        let coeffs = (0..=max_key)
-            .map(|i: usize| {
-                if map.contains_key(&i) {
-                    map.get(&i).unwrap().clone()
-                } else {
-                    Scalar::zero()
-                }
-            })
-            .collect::<Vec<_>>();
+        let coeffs = if map.is_empty() {
+            vec![Scalar::zero()]
+        } else {
+            let max_key = map.keys().max().unwrap().clone();
+            let coeffs = (0..=max_key)
+                .map(|i: usize| {
+                    if map.contains_key(&i) {
+                        map.get(&i).unwrap().clone()
+                    } else {
+                        Scalar::zero()
+                    }
+                })
+                .collect::<Vec<_>>();
+            coeffs
+        };
         Polynomial { coeffs }
+    }
+
+    // sum all the evaluations on hypercube of a mpoly
+    // Porting from sumcheck::Prover::proof()
+    pub fn sum_all_evals(&self) -> Scalar {
+        let n = 1 << self.var_num;
+        (0..n)
+            .map(|i| {
+                let domain = convert_to_binary(&self.var_num, i);
+                self.evaluate(&domain)
+            })
+            .sum()
     }
 }
 
@@ -375,6 +391,31 @@ mod test {
         let target = Scalar::from_u128(10);
 
         let actual = poly.evaluate(&domain);
+        assert_eq!(target, actual);
+
+        // let g(x1, x2, x3) = 5 + 2*x3 + 3*x2 +  x1 * x2 * x3
+        assert_eq!(poly.evaluate(&vec![3, 2, 1]), Scalar::from_u128(19))
+    }
+
+    #[test]
+    fn test_evaluate_uni_var() {
+        // let g(x1) = 4 + 28*x1
+        // term0: exp: (0) = 4
+        // term1: exp: (1) = 28*x
+
+        let var_num = 1;
+
+        let poly = MPolynomial {
+            var_num,
+            coeffs: vec![Scalar::from_u128(4), Scalar::from_u128(28)],
+        };
+
+        println!("{:?}", poly);
+
+        // target = 0x58
+        let target = Scalar::from_u128(5 * 16 + 8);
+
+        let actual = poly.evaluate(&vec![3]);
         assert_eq!(target, actual);
     }
 }
