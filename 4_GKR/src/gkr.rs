@@ -44,7 +44,7 @@ impl GKR {
         //  1.2 V pick a challenge r_0( $r0∈Fk0$ ) and let $m_{0}=\widetilde{D}(r_0)$
         let (r_0, m_0) = self.verifier.init(D_poly, inputs, self.input_var_num);
 
-        // 2. start the d rounds gkr-gkr_sumcheck
+        // 2. start the d rounds gkr_sumcheck
         //    check $m_i = \sum_{b,c\in{0,1}^{i+1}} f_{r_i}(b,c)$
         let mut r_i = r_0;
         let mut m_i = m_0;
@@ -106,6 +106,7 @@ mod test {
 
     #[test]
     fn test_GKR() {
+        // todo-bugfix later.
         let inputs = vec![
             Scalar::one(),
             Scalar::from_u128(2),
