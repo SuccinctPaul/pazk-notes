@@ -25,7 +25,7 @@ impl Verifier {
     }
 
     // generate r1, r2, ..., rv
-    fn gen_challenge() -> usize {
+    pub(super) fn gen_challenge() -> usize {
         let k = OsRng.next_u32() % 1000;
         k as usize
     }
@@ -87,24 +87,28 @@ impl Verifier {
         assert_eq!(actual, target, "Not-equal in round_{}", j);
     }
 
-    // todo:  V checks d􏰌irectly that md = W􏰌d (rd ) using Lemma 3.8.
-    //     // 2. gv (rv ) = g(r1 , . . . , rv )
-    //     pub fn check(&self, target: Scalar) {
-    //         assert_eq!(
-    //             self.v,
-    //             self.cached_g_j.len(),
-    //             "length of cached_g_j != (j-1)"
-    //         );
-    //         assert_eq!(
-    //             self.v,
-    //             self.challenges.len(),
-    //             "length of challenges != (j-1)"
-    //         );
-    //         let r_v = self.challenges.last().unwrap().clone() as u128;
-    //         let g_v = self.cached_g_j.last().unwrap().clone();
-    //         let actual = g_v.evaluate(Scalar::from_u128(r_v));
-    //
-    //         assert_eq!(actual, target, "Verifier rejected the proof");
-    //         println!("Verifier accepted the proof");
-    //     }
+    // V checks below:
+    //  gv (rv ) = add(r_i,u,v)(W_i_1(u) + W_i_1(v)) + mult(r_i,u,v)(W_i_1(u) * W_i_1(v)))
+    //  We use p encode the (0,W_i_1(u)),(1,W_i_1(v)).
+    pub fn check(&self, (add_value, mult_value, p_poly): (Scalar, Scalar, &Polynomial)) {
+        assert_eq!(
+            self.v,
+            self.cached_g_j.len(),
+            "length of cached_g_j != (j-1)"
+        );
+        assert_eq!(
+            self.v,
+            self.challenges.len(),
+            "length of challenges != (j-1)"
+        );
+        let target = add_value * (p_poly.evaluate(Scalar::zero()) + p_poly.evaluate(Scalar::one()))
+            + mult_value * (p_poly.evaluate(Scalar::zero()) * p_poly.evaluate(Scalar::one()));
+
+        let r_v = self.challenges.last().unwrap().clone() as u128;
+        let g_v = self.cached_g_j.last().unwrap().clone();
+        let actual = g_v.evaluate(Scalar::from_u128(r_v));
+
+        assert_eq!(actual, target, "Verifier rejected the proof");
+        println!("Verifier accepted the proof");
+    }
 }

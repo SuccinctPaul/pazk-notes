@@ -88,13 +88,28 @@ impl Prover {
         let poly_add = self.add.partial_evaluate(&ops_challenge_domain);
         let poly_mult = self.mult.partial_evaluate(&ops_challenge_domain);
 
-        let poly_w_a = self.w_i_plus_1.partial_evaluate(challenges);
-        let w_b = self.w_i_plus_1.sum_all_evals();
+        let (poly_w, w_value) = if challenges.len() < self.v_r / 2 {
+            //challenges only support partial of a
+            let poly_w_a = self.w_i_plus_1.partial_evaluate(challenges);
+            let w_b = self.w_i_plus_1.sum_all_evals();
+            (poly_w_a, w_b)
+        } else {
+            //challenges support all a and partial b
+            let mut c = challenges.chunks(self.v_r / 2);
+            // evaluate all with challenge
+            let w_a = self.w_i_plus_1.evaluate(&Vec::from(c.next().unwrap()));
+            let poly_w_b = self
+                .w_i_plus_1
+                .partial_evaluate(&Vec::from(c.next().unwrap()));
+            (poly_w_b, w_a)
+        };
 
         // poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
-        poly_add
-            .mul(&poly_w_a)
-            .add(&poly_add.mul(&w_b).add(&poly_mult.mul(&poly_w_a).mul(&w_b)))
+        poly_add.mul(&poly_w).add(
+            &poly_add
+                .mul(&w_value)
+                .add(&poly_mult.mul(&poly_w).mul(&w_value)),
+        )
     }
 
     // Return g_v = (r1, r2, ..., r_v-1, X_v)
@@ -107,16 +122,65 @@ impl Prover {
         let poly_add = self.add.partial_evaluate(&ops_challenge_domain);
         let poly_mult = self.mult.partial_evaluate(&ops_challenge_domain);
 
-        let poly_w_a = self.w_i_plus_1.partial_evaluate(challenges);
-        let w_b = self.w_i_plus_1.sum_all_evals();
+        //challenges support all a and partial b
+        let mut c = challenges.chunks(self.v_r / 2);
+        // evaluate all with challenge
+        let w_a = self.w_i_plus_1.evaluate(&Vec::from(c.next().unwrap()));
+        let poly_w_b = self
+            .w_i_plus_1
+            .partial_evaluate(&Vec::from(c.next().unwrap()));
 
         // poly_add * poly_w_a + poly_add * w_b + poly_mult * (poly_w_a * w_b)
         poly_add
-            .mul(&poly_w_a)
-            .add(&poly_add.mul(&w_b).add(&poly_mult.mul(&poly_w_a).mul(&w_b)))
+            .mul(&poly_w_b)
+            .add(&poly_add.mul(&w_a).add(&poly_mult.mul(&poly_w_b).mul(&w_a)))
     }
 
-    // pub fn evaluate(&self, challenges: &Vec<usize>) -> Scalar {
-    //     self.g.evaluate(challenges)
-    // }
+    // challenges include (u, v), here we need (r,u,v)
+    pub fn evaluate(
+        &self,
+        challenges: &Vec<usize>,
+    ) -> (Scalar, Scalar, Vec<Vec<usize>>, Polynomial) {
+        assert_eq!(self.v_r, challenges.len());
+
+        // 1. evaluate add/mult at (r,u,v)
+        let mut ops_challenge_domain = self.r_i.clone();
+        ops_challenge_domain.append(&mut challenges.clone());
+        let add_value = self.add.evaluate(&ops_challenge_domain);
+        let mult_value = self.mult.evaluate(&ops_challenge_domain);
+
+        // 2 Obtain W_i_1(u) and W_i_1(v) for verifier's final check and prepare for the `r_i_plus_1` used in next round.
+        let mut c = challenges.chunks(self.v_r / 2);
+        let u = Vec::from(c.next().unwrap());
+        let v = Vec::from(c.next().unwrap());
+
+        // 2.1 Obtain the values: W_i_1(u) and W_i_1(v)
+        let w_u_value = self.w_i_plus_1.evaluate(&u);
+        let w_v_value = self.w_i_plus_1.evaluate(&v);
+
+        // 2.2 Let l be the unique poly satisfying l(0)=u and l(1)=v
+        //      As u,v are arrays, so that, l can be a set of poly_i.
+        //      The poly_i satisfying poly_i(0)=u[i] and poly_i(1)=v[i]
+        let l_polys = u
+            .iter()
+            .zip(v)
+            .map(|(ui, vi)| {
+                // l_i(x) = (vi-ui)x + ui <--> l(0)=u and l(1)=v
+                // As the Polynomail only support the Scalar. So we use the arrays as a usize-poly:
+                //      p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1)
+                //      coeffs: [a_0, a_1, ..., a_n]
+                vec![*ui, vi - *ui]
+            })
+            .collect::<Vec<_>>();
+
+        // 2.3 Let q be the unique poly satisfying p(0)=W_i_1(u) and p(1)=W_i_1(v).
+        //      Note: Here we regard domain(0,1) on Scalar
+        let p_poly = Polynomial::lagrange_interpolate(
+            vec![Scalar::zero(), Scalar::one()],
+            vec![w_u_value, w_v_value],
+        );
+
+        // return the add(r_i,u,v), mult(r_i,u,v), l_poly, p_poly.
+        (add_value, mult_value, l_polys, p_poly)
+    }
 }

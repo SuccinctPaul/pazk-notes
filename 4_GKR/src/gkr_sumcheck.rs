@@ -2,6 +2,7 @@ use crate::gkr_sumcheck::prover::Prover;
 use crate::gkr_sumcheck::verifier::Verifier;
 use crate::poly::{MPolynomial, Polynomial};
 use bls12_381::Scalar;
+use ff::PrimeField;
 use std::env::var;
 use std::iter::Sum;
 
@@ -18,7 +19,7 @@ pub mod verifier;
 //      The standard one evaluated only on one poly.
 //      The gkr one evaluted on three polys-add, mult, W_i+1
 pub struct GkrSumCheck {
-    v_l: usize, // the constants_part var_num.  v_l + v_r = ki + 2*k_i_plus_1
+    // v_l: usize, // the constants_part var_num.  v_l + v_r = ki + 2*k_i_plus_1
     v_r: usize, // the variable_part var_num. equals to `v` in standard sumcheck.
     // r_i: Vec<usize>,
     // layer_i: usize, // the gkr layer index. [0,d)
@@ -41,7 +42,6 @@ impl GkrSumCheck {
         let verifier = Verifier::new(v_r, proof);
 
         Self {
-            v_l,
             v_r,
             // r_i,
             prover,
@@ -49,7 +49,7 @@ impl GkrSumCheck {
         }
     }
 
-    pub fn run_protocol(&mut self) {
+    pub fn run_protocol(&mut self) -> (Vec<usize>, Scalar) {
         // round 1
         let g1 = self.prover.round_1();
         self.verifier.round_1(g1);
@@ -68,10 +68,21 @@ impl GkrSumCheck {
         self.verifier.round_v(g_v);
         // drop(challenges);
 
-        //     // finally check
-        //     let challenges = self.verifier.challenges();
-        //     let target = self.prover.evaluate(&challenges);
-        //     self.verifier.check(target);
+        // finally check
+        let challenges = self.verifier.challenges();
+        let (add_value, mult_value, l_polys, p_poly) = self.prover.evaluate(&challenges);
+        self.verifier.check((add_value, mult_value, &p_poly));
+
+        // Prepare for next sumcheck:
+        //  V chooses random t and sets r_{i+1} = l(t) and mi+1 = q(r_{i+1})=q(l(t)).
+        let t = Verifier::gen_challenge();
+        let r_1_plus_1 = l_polys
+            .iter()
+            .map(|l_i| l_i.iter().rev().fold(0, |acc, coeff| acc * t + *coeff))
+            .collect::<Vec<_>>();
+        let m_i_plus_1 = p_poly.evaluate(Scalar::from_u128(t as u128));
+
+        (r_1_plus_1, m_i_plus_1)
     }
 }
 
