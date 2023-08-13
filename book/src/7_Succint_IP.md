@@ -45,7 +45,8 @@ depend on the query point r, at least not without breaking the computational ass
 scheme is based.
 
 
-### Merkle-hashing
+### Merkle tree
+
 
 
 ## Arguments of Knowledge and SNARKs
@@ -72,3 +73,34 @@ but also the prover `knows` such a w.
   * succinct, meaning that the proofs are very short. 
 
 Such arguments are called SNARKs.
+
+
+
+## Polynomial Commitment Scheme
+> folklore commitment scheme (it was also explicitly proposed by Yael Kalai [Kal17]).
+
+
+### Merkle Trees 
+Merkle tree makes use of a collision-resistant hash function h mapping inputs to {0,1}^κ.
+
+The leaves of the tree are the symbols of a string s, and every internal node of the tree is assigned the hash of its two children.
+
+
+#### string-commitment scheme
+Merkle Trees be used to design a string commitment scheme, One obtains a string-commitment protocol from a Merkle tree as follows:
+* In the commitment step, the sender commits to the string s by sending the root of the hash-tree.
+* The Reveal step,
+
+  If the sender is later asked to reveal the ith symbol in s, the sender sends the value of the ith leaf in the tree (i.e., si), 
+  as well as the value of every node v along the root-to-leaf path for si, and the sibling of each such node v. 
+  
+  The receiver checks that the hash of every two siblings sent equals the claimed value of their paren
+
+
+
+
+
+### low-degree tests
+
+
+
