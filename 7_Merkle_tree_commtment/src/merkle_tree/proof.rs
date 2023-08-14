@@ -4,5 +4,6 @@
 // brather-nodes(each layer has only one!), the left infos will be calculated by verifier.
 // And totally needs h hash values.
 pub struct Proof {
-    root: Vec<u64>, // The root of the inner binary tree
+    pub children: Vec<u64>, // the children from left to root.
+    pub root: u64,          // root hash
 }

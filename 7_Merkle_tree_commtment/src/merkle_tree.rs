@@ -1,14 +1,16 @@
-mod hasher;
-mod node;
-mod proof;
+pub mod hasher;
+pub mod node;
+pub mod proof;
 
 use crate::hashutils::{HashUtils, Hashable};
+use crate::merkle_tree::hasher::calculate_hash;
 use crate::merkle_tree::node::TreeNode;
 use crate::merkle_tree::proof::Proof;
 use crate::tree::{LeavesIntoIterator, LeavesIterator, Tree};
 use numeric::math::log2;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::sync::mpsc::channel;
 
 // A Merkle tree is a binary tree, with values of type `T` at the leafs,
 // and where every internal node holds the hash of the concatenation of the hashes of its children nodes.
@@ -40,16 +42,46 @@ impl<T> MerkleTree<T> {
         todo!()
     }
 
-    pub fn commit(x: T) -> Proof {
-        todo!()
+    pub fn commit(&self, x: &T) -> Proof {
+        let mut values = Vec::with_capacity(self.height - 1);
+        let root_hash = self.root.get_hash();
+        Self::dfs(&self.root, &x, &mut values);
+        Proof {
+            root: root_hash,
+            children: values,
+        }
+    }
+
+    fn dfs(root: &TreeNode<T>, target: &T, res: &mut Vec<u64>) -> bool {
+        match root {
+            TreeNode::Leaf(_, value) => {
+                if value == target {
+                    true
+                } else {
+                    false
+                }
+            }
+            TreeNode::Node(_, left, right) => {
+                let l = Self::dfs(left, target, res);
+                // if left meet target.
+                if l {
+                    res.push(right.get_hash());
+                    return true;
+                }
+
+                // if right meet target.
+                let r = Self::dfs(right, target, res);
+                if r {
+                    res.push(left.get_hash());
+                }
+                r
+            }
+        }
     }
 
     // Constructs a Merkle Tree from a vector of data.
-    // Returns `None` if `values` is empty.
-    pub fn init(values: Vec<T>) -> Self
-    where
-        T: Hashable,
-    {
+    // Root = hash_util(left.hash + right.hash)
+    pub fn init(values: Vec<T>) -> Self {
         assert!(
             values.is_empty(),
             "Can't initial MerkleTree from empty vector"
@@ -58,34 +90,31 @@ impl<T> MerkleTree<T> {
         // assert!(, "len of vector must be 2^h")
 
         let mut height = 0;
-        let mut cur = Vec::with_capacity(count);
 
-        for v in values {
-            let leaf = TreeNode::new_leaf(v);
-            cur.push(leaf);
-        }
+        let leaves_nodes = values
+            .iter()
+            .map(|v| TreeNode::new_leaf(v))
+            .collect::<Vec<TreeNode<T>>>();
 
         // construct tree by leaves.
-
+        let mut cur = leaves_nodes;
         while cur.len() > 1 {
-            let mut next = Vec::new();
+            let mut parent = Vec::new();
             while !cur.is_empty() {
-                if cur.len() == 1 {
-                    next.push(cur.remove(0));
-                } else {
-                    let left = cur.remove(0);
-                    let right = cur.remove(0);
+                assert!(cur.len() == 1, "It's not a perfect tree");
+                let left = cur.remove(0);
+                let right = cur.remove(0);
 
-                    let combined_hash = algorithm.hash_nodes(left.hash(), right.hash());
+                let sum = left.get_hash() + right.get_hash();
+                let parent_hash = calculate_hash(&sum);
 
-                    let node = Tree::Node {
-                        hash: combined_hash.as_ref().into(),
-                        left: Box::new(left),
-                        right: Box::new(right),
-                    };
+                let node = TreeNode::Node {
+                    hash: parent_hash,
+                    left,
+                    right,
+                };
 
-                    next.push(node);
-                }
+                next.push(node);
             }
 
             height += 1;
@@ -95,11 +124,7 @@ impl<T> MerkleTree<T> {
 
         let root = cur.remove(0);
 
-        MerkleTree {
-            root,
-            height,
-            count,
-        }
+        MerkleTree { root, height }
     }
 
     // Returns the root hash of Merkle tree

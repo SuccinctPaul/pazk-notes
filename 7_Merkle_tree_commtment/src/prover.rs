@@ -1,3 +1,4 @@
+use crate::merkle_tree::proof::Proof;
 use crate::merkle_tree::MerkleTree;
 use std::intrinsics::fabsf32;
 
@@ -8,7 +9,7 @@ pub struct Prover {
 
 impl Prover {
     pub fn random_values() -> Self {
-        let values = vec![seed];
+        let values = vec![seed]; // todo()
         let merkle_tree = MerkleTree::init(values.clone());
         Self {
             values,
@@ -19,7 +20,7 @@ impl Prover {
     // V send a challenge to P,
     pub fn has_x(&self, x: &char) -> (bool, Option<Proof>) {
         if self.values.contains(x) {
-            let proof = self.merkle_tree.commit();
+            let proof = self.merkle_tree.commit(x);
 
             (true, Some(proof))
         } else {

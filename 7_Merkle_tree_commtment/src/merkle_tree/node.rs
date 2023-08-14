@@ -13,9 +13,9 @@ pub enum TreeNode<T> {
         value: T,  // Value of the leaf node
     },
     Node {
-        hash: u64,               // Hash of the node
-        left: Box<TreeNode<T>>,  // Left child of the node
-        right: Box<TreeNode<T>>, // Right chiild of the node
+        hash: u64,          // Hash of the node
+        left: TreeNode<T>,  // Left child of the node
+        right: TreeNode<T>, // Right chiild of the node
     },
 }
 
@@ -35,7 +35,7 @@ impl<T> TreeNode<T> {
     }
 
     /// Returns a hash from the Node.
-    pub fn hash(&self) -> u64 {
+    pub fn get_hash(&self) -> u64 {
         match self {
             &Self::Leaf { hash, .. } => hash,
             &Self::Node { hash, .. } => hash,
