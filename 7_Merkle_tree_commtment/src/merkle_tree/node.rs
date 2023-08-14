@@ -13,9 +13,9 @@ pub enum TreeNode<T> {
         value: T,  // Value of the leaf node
     },
     Node {
-        hash: u64,           // Hash of the node
-        left: Box<Tree<T>>,  // Left child of the node
-        right: Box<Tree<T>>, // Right chiild of the node
+        hash: u64,               // Hash of the node
+        left: Box<TreeNode<T>>,  // Left child of the node
+        right: Box<TreeNode<T>>, // Right chiild of the node
     },
 }
 
@@ -74,12 +74,7 @@ impl<'a, T> LeavesIterator<'a, T> {
     fn add_left(&mut self, mut Node: &'a Node<T>) {
         loop {
             match *Node {
-                Node::Empty { .. } => {
-                    self.current_value = None;
-                    break;
-                }
-
-                Node::Node {
+                TreeNode::Node {
                     ref left,
                     ref right,
                     ..
@@ -88,7 +83,7 @@ impl<'a, T> LeavesIterator<'a, T> {
                     Node = left;
                 }
 
-                Node::Leaf { ref value, .. } => {
+                TreeNode::Leaf { ref value, .. } => {
                     self.current_value = Some(value);
                     break;
                 }
@@ -133,17 +128,12 @@ impl<T> LeavesIntoIterator<T> {
     fn add_left(&mut self, mut Node: Node<T>) {
         loop {
             match Node {
-                Node::Empty { .. } => {
-                    self.current_value = None;
-                    break;
-                }
-
-                Node::Node { left, right, .. } => {
+                TreeNode::Node { left, right, .. } => {
                     self.right_nodes.push(*right);
                     Node = *left;
                 }
 
-                Node::Leaf { value, .. } => {
+                TreeNode::Leaf { value, .. } => {
                     self.current_value = Some(value);
                     break;
                 }
