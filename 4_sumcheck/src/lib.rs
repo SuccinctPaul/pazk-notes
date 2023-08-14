@@ -1,3 +1,3 @@
-mod poly;
-mod sumcheck;
-mod utils;
+pub mod poly;
+pub mod sumcheck;
+pub mod utils;

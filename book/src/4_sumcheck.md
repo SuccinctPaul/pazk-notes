@@ -31,6 +31,11 @@ https://people.cs.georgetown.edu/jthaler/GKRNote.pdf
   https://github.com/TAMUCrypto
   https://eprint.iacr.org/2020/1247
 
+* eth research about GKR
+  https://ethresear.ch/t/using-gkr-inside-a-snark-to-reduce-the-cost-of-hash-verification-down-to-3-constraints/7550
+  https://github.com/jeong0982/gkr
+  https://github.com/Consensys/gkr-mimc
+
 
 ## Reference
 https://blog.csdn.net/mutourend/article/details/121953751
