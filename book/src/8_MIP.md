@@ -4,8 +4,9 @@ cannot tell each other about what challenges they receive from the verifier.
 
 ## Definitions and Basic Results
 Definition
-A k-prover interactive proof protocol for a language L⊆{0, 1} involves k+1 parties: a probabilistic polynomial time verifier, 
-and k provers. 
+A k-prover interactive proof protocol for a language L⊆{0, 1} involves k+1 parties: 
+a probabilistic polynomial time verifier, and k provers. 
+
 The verifier exchanges a sequence of messages with each prover; 
 each prover’s message is a function of the input and the messages from V that it has seen so far. 
 The interaction produces a transcript t = (V(r),P1,...,Pk)(x), where r denotes V’s internal randomness. 
