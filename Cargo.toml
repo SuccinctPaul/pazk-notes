@@ -10,7 +10,6 @@ members = [
     "5_Fiat_Shamir",
     "5_ni_sumcheck",
     "7_Merkle_tree_commtment",
-    "7_Low_Degree_Test",
 ]
 
 resolver = "2"
