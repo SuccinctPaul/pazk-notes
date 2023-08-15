@@ -1,16 +1,18 @@
 use crate::merkle_tree::proof::Proof;
 use crate::merkle_tree::MerkleTree;
-use std::intrinsics::fabsf32;
+use crate::utils::random_chars;
 
 pub struct Prover {
-    values: Vec<char>, // statement.
-    merkle_tree: MerkleTree<char>,
+    pub(crate) values: Vec<char>, // statement.
+    pub(crate) merkle_tree: MerkleTree,
 }
 
 impl Prover {
-    pub fn random_values() -> Self {
-        let values = vec![seed]; // todo()
+    // k is the depth of tree, 2^k is the random values size.
+    pub fn random_values(k: usize) -> Self {
+        let values = random_chars(k);
         let merkle_tree = MerkleTree::init(values.clone());
+        assert_eq!(merkle_tree.height(), k, "Unexpected Merkle tree height");
         Self {
             values,
             merkle_tree,
