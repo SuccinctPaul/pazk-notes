@@ -90,17 +90,18 @@ The leaves of the tree are the symbols of a string s, and every internal node of
 Merkle Trees be used to design a string commitment scheme, One obtains a string-commitment protocol from a Merkle tree as follows:
 * In the commitment step, the sender commits to the string s by sending the root of the hash-tree.
 * The Reveal step,
-
   If the sender is later asked to reveal the ith symbol in s, the sender sends the value of the ith leaf in the tree (i.e., si), 
   as well as the value of every node v along the root-to-leaf path for si, and the sibling of each such node v. 
   
   The receiver checks that the hash of every two siblings sent equals the claimed value of their paren
 
-
-
-
+![img.png](images/Figure_7_1.png)
 
 ### low-degree tests
+Low degree testing refers to the problem of deciding whether a given function is a polynomial of some bounded degree, 
+by making only a small number of queries to the function. It's a central tool in the theory of probabilistic proofs
 
 
 
+## Reference
+[Low Degree Testing-Starkware](https://medium.com/starkware/low-degree-testing-f7614f5172db#:~:text=L%20ow%20degree%20testing%20refers%20to%20the%20problem,central%20tool%20in%20the%20theory%20of%20probabilistic%20proofs.)
