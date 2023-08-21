@@ -57,8 +57,27 @@ $∏ (X − a) = X n − 1.$
 ## FRI
 FRI is short for Fast Reed-Solomon Interactive Oracle Proof of Proximity, also abbreviated as "Fast RS-IOPP".
 
-On a high-level, FRI enables proving whether a given function `f:H→F_p`is “close” to a certain polynomial of 
-low degree. Hence the term proof of proximity.
+On a high-level, FRI proves that a function `f : H→F` is close to a polynomial of low degree d.  Here,
+by low degree, we mean that `d ≪ |H|`. 
+
+
+### Two Phases
+### Commit Phase
+The prover commits to (via Merkle trees) a series of functions generated from f and random elements v0, v1, . . . from K provided by the verifier at each round.
+
+
+* split-and-fold
+The whole derivation of pi+1 from pi is often known as split-and-fold due to the prover splitting the initial polynomial into two and then folding it into one using a random value.
+
+
+### Query Phase
+The prover provides a set of evaluations of the previously committed functions at a point 
+randomly chosen by the verifier.
+
+
+
+
+
 
 Loosely put, the FRI protocol allows for a random set of queries (requests for openings of polynomials at randomly 
 selected field elements), used by the verifier to ascertain with high probability, the prover's knowledge of a committed polynomial.
