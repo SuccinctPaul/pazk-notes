@@ -5,6 +5,6 @@
 // And totally needs h hash values.
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Proof {
-    pub children: Vec<u64>, // the children from left to root.
-    pub root: u64,          // root hash
+    pub children: Vec<u64>, // the children from left to root. aka evals
+    pub root: u64,          // root hash. aka cm
 }

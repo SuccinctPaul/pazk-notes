@@ -64,6 +64,15 @@ impl MerkleTree {
         MerkleTree { root, height }
     }
 
+    // equal the commit, by open it by index of values.
+    pub fn open(&self, index: usize) {
+        // get path
+
+        //
+
+        todo!()
+    }
+
     pub fn commit(&self, x: &char) -> Proof {
         let mut values = Vec::with_capacity(self.height - 1);
         let root_hash = self.root.get_hash();

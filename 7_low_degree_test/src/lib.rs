@@ -2,6 +2,6 @@
 //! and [A summary on the fri low degree test](https://eprint.iacr.org/2022/1216)
 
 pub mod ldt;
+mod merkle_tree;
 mod poly;
 mod transcript;
-pub use Merkle_tree_commitment::prover;
