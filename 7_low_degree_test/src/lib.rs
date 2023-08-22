@@ -4,3 +4,4 @@
 pub mod ldt;
 mod poly;
 mod transcript;
+pub use Merkle_tree_commitment::prover;

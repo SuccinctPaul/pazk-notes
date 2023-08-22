@@ -8,8 +8,7 @@ pub mod default;
 pub trait Transcript {
     fn append(&mut self, new_data: &[u8]);
 
-    // generate r1, r2, ..., rv
-    fn challenge(&mut self) -> usize;
+    fn challenge(&mut self) -> Scalar;
 }
 
 pub(crate) fn poly_to_bytes(poly: &Polynomial) -> Vec<u8> {

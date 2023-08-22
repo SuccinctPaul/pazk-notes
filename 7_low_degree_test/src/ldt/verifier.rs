@@ -1,3 +1,7 @@
-pub struct Verifier {}
+pub struct Verifier {
+    pub target_deg: usize, // target degree
+}
 
-impl Verifier {}
+impl Verifier {
+    pub fn verify() {}
+}

@@ -59,29 +59,6 @@ impl MerkleTree {
         }
         assert_eq!(cur.len(), 1);
 
-        // while cur.len() > 1 {
-        //     let mut parent = Vec::new();
-        //     while !cur.is_empty() {
-        //         let left = cur.remove(0);
-        //         let right = cur.remove(0);
-        //
-        //         let sum = left.get_hash() + right.get_hash();
-        //         let parent_hash = calculate_hash(&sum);
-        //
-        //         let node = TreeNode::Node {
-        //             hash: parent_hash,
-        //             left: Box::new(left),
-        //             right: Box::new(right),
-        //         };
-        //
-        //         parent.push(node);
-        //     }
-        //
-        //     height += 1;
-        //
-        //     cur = parent;
-        // }
-
         let root = cur.remove(0);
 
         MerkleTree { root, height }
