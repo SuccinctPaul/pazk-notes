@@ -13,7 +13,10 @@ impl Transcript for Keccak256Transcript {
         self.hasher.update(&mut new_data.to_owned());
     }
 
+    // auto append and gen challenge
     fn challenge(&mut self) -> Scalar {
+        self.append(&[1]);
+
         let mut result_hash = [0_u8; 32];
         result_hash.copy_from_slice(&self.hasher.finalize_reset());
         result_hash.reverse();

@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 sumcheck = {path = "../4_sumcheck"}
-Merkle_tree_commitment = {path = "../7_Merkle_tree_commtment"}
 ff = "0.13.0"
 bls12_381 = "0.8.0"
 rand = "0.8.5"
