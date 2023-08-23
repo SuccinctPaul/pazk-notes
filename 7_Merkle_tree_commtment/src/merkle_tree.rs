@@ -5,6 +5,7 @@ pub mod proof;
 use crate::merkle_tree::hasher::{calculate_hash, calculate_parent_hash};
 use crate::merkle_tree::node::TreeNode;
 use crate::merkle_tree::proof::Proof;
+use crate::utils::convert_to_binary;
 use ark_std::log2;
 use std::cmp::Ordering;
 
@@ -12,8 +13,8 @@ use std::cmp::Ordering;
 // and where every internal node holds the hash of the concatenation of the hashes of its children nodes.
 // Note: For convinence, we suppose Merkle tree is a ![complete binary tree](https://www.geeksforgeeks.org/types-of-binary-tree/?ref=lbp)
 //      Degree: 2
-//      Leaf nodes: if tree height is h, so the number of leaf nodes will be `2^h`
-//      Total nodes: A tree of height h has total nodes = 2^(h+1)–1
+//      Leaf nodes: if tree height is h, so the number of leaf nodes will be `2^(h-1)`
+//      Total nodes: A tree of height h has total nodes = 2^h–1
 //      Height of tree: If tree has N nodes, the hight `h=log(N+1)–1=Θ(ln(n))`. From root to leaf: [1,h].
 #[derive(Clone, Debug)]
 pub struct MerkleTree {
@@ -22,6 +23,7 @@ pub struct MerkleTree {
 }
 
 impl MerkleTree {
+    // init and commit
     // Constructs a Merkle Tree from a vector of data.
     // Root = hash_util(left.hash + right.hash)
     pub fn init(values: Vec<char>) -> Self {
@@ -65,14 +67,54 @@ impl MerkleTree {
     }
 
     // equal the commit, by open it by index of values.
-    pub fn open(&self, index: usize) {
-        // get path
+    pub fn open(&self, index: usize) -> Proof {
+        // index belong [0, leaves_num).
+        assert!(index >= 0 && index < self.leaves_num(), "Wrong leaf index");
 
-        //
+        let path_len = (self.height - 1);
+        // get leaf-root path,
+        // Suppose the left child is 0, the right child is 1, so the path can be indexed as binary form with (height-1) bits.
+        // eg: tree height is 3, which has total 2^2 leaves, the leave can ben indexed as (00, 01, 10, 11).
+        // a. turn the index into binary form with (height-1) bits.
+        let path = convert_to_binary(&path_len, index);
 
-        todo!()
+        // b. according the path, we can found out the proof of the indexed leaf, which just need to collect the bro-node.
+        //    We'll collect the bro-node by the path. Collect the left child is 1, the right child is 0.
+
+        let mut values = Vec::with_capacity(path_len);
+        let root_hash = self.root.get_hash();
+
+        let mut cur_node = &self.root;
+
+        // for now the hash values are collected from root to leaf.
+        for i in (0..path_len) {
+            let p = path.get(path_len - i).unwrap();
+
+            match cur_node {
+                TreeNode::Leaf => panic!("Never reach leaf"),
+                TreeNode::Node { hash, left, right } => {
+                    // collect the right as bro-node.
+                    if p == 0 {
+                        values.push(right.get_hash());
+                        cur_node = left.as_ref();
+                    } else {
+                        values.push(left.get_hash());
+                        cur_node = right.as_ref();
+                    }
+                }
+            }
+        }
+
+        // reverse the hash values to make sure it's from leaf to root
+        values.reverse();
+
+        Proof {
+            root: root_hash,
+            children: values,
+        }
     }
 
+    // commit and open.
     pub fn commit(&self, x: &char) -> Proof {
         let mut values = Vec::with_capacity(self.height - 1);
         let root_hash = self.root.get_hash();
@@ -122,12 +164,12 @@ impl MerkleTree {
 
     // Leaf nodes: if tree height is h, so the number of leaf nodes will be `2^h`
     pub fn leaves_num(&self) -> usize {
-        2 ^ self.height
+        2 ^ (self.height - 1)
     }
 
     // Total nodes: A tree of height h has total nodes = 2^(h+1)–1
     pub fn nodes_num(&self) -> usize {
-        2 ^ (self.height + 1) - 1
+        2 ^ self.height - 1
     }
 }
 

@@ -1,6 +1,17 @@
 use rand::distributions::{Alphanumeric, DistString};
 use rand_core::OsRng;
 
+// convert a num into its binary form
+// eg: 8 -> 1000, will output [1, 0, 0, 0]
+pub fn convert_to_binary(bit_len: &usize, num: usize) -> Vec<usize> {
+    let a: usize = 1 << bit_len;
+    assert!(a >= num);
+    (0..*bit_len)
+        .map(|n| (num >> n) & 1)
+        .rev()
+        .collect::<Vec<usize>>()
+}
+
 pub fn random_chars(k: usize) -> Vec<char> {
     let n = 1 << k;
     let random_code = Alphanumeric.sample_string(&mut OsRng, n);
