@@ -8,41 +8,48 @@ use rayon::iter::split;
 use std::iter::Scan;
 use std::ops::{Add, Mul};
 use sumcheck::poly::univar_poly::Polynomial;
+use Merkle_tree_commitment::merkle_tree::MerkleTree;
 
 #[derive(Default)]
 pub struct Proof {
-    pub commits: Vec<MerkleProof>, // commit of fi
-    pub opens: Vec<Scalar>, // The open values on challenge z for fi: f0(z), f0(−z), f1(z^2), f1(−z^2)
-    pub last_const: (Scalar, Scalar),
+    pub commits: Vec<MerkleProof>,    // commit of fi
+    pub opens: Vec<(Scalar, Scalar)>, // The open values on challenge z for fi: (f0(z), f0(−z)), f1(z^2), f1(−z^2)
+    pub last_const: (Scalar, Scalar), // (p_L, p_R)
 }
 
 pub struct Prover {
     poly: Polynomial,
+    z: Scalar,
 }
 
 impl Prover {
-    pub fn init(poly: Polynomial) -> Self {
-        Self { poly }
+    pub fn init(poly: Polynomial, z: Scalar) -> Self {
+        Self { poly, z }
     }
 
     pub fn prove(&self) {
         let mut transcript = Keccak256Transcript::default();
         let proof = Proof::default();
 
-        // commit phase
-        // let mut d = log2(poly.degree());
-        // // P starts from f(x), and for i = 0 sets f0(x) = f(x).
-        // let p_0 = self.poly;
-        // let mut p_i = p_0;
-        // while d >= 0 {
-        //     d = Self::split_and_fold(proof, &mut p_i, &mut transcript);
-        // }
+        // iter for d rounds.
+        let mut d = log2(self.poly.degree());
+
+        // P starts from f(x), and for i = 0 sets f0(x) = f(x).
+        let p_0 = self.poly;
+        let mut p_i = p_0;
+        let mut z = self.z;
+        while d >= 0 {
+            d = Self::split_and_fold(proof, &mut p_i, &mut transcript, z.clone());
+
+            // z = z.pow(2^d);
+        }
     }
 
     pub fn split_and_fold(
         proof: &mut Proof,
         p_i: &mut Polynomial,
         transcript: &mut Keccak256Transcript,
+        z_i: Scalar,
     ) -> Polynomial {
         // assert!()
         let (p_L, p_R) = split_poly(&p_i.clone());
@@ -51,7 +58,6 @@ impl Prover {
             proof.last_const = (*p_L.coeffs().get(0).unwrap(), *p_R.coeffs().get(0).unwrap());
             // p_i // return itself for end.
         }
-        // let d = log2(poly.degree());
 
         // gen challenge
         let challenge = transcript.challenge();
@@ -59,10 +65,18 @@ impl Prover {
         // f_i_1 = f_L + c*f_R
         let p_i_plus_1 = p_L.add(&p_L.mul(&challenge));
 
+        // commit phase
         // merkle tree commit the poly fi+1
+        let merkle_tree = MerkleTree::init(&p_i_plus_1.coeffs());
+        let cm_i = merkle_tree.root_hash();
+
+        // query phase
+        let f_z = p_i_plus_1.evaluate(z.clone());
+        let f_neg_z = p_i_plus_1.evaluate(z.neg());
+
+        proof.commits.push(cm_i);
+        proof.opens.push((f_z, f_neg_z));
 
         p_i_plus_1
     }
-
-    fn query() {}
 }
