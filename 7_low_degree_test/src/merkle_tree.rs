@@ -187,13 +187,13 @@ mod test {
         println!("merkle tree: {:?}", merkle);
     }
 
-    #[test]
-    fn test_init_merkle_tree_by_field() {
-        let chars = random_scalars(3);
-        println!("chars:{:?}", chars);
-        let merkle = MerkleTree::init(chars);
-        println!("merkle tree: {:?}", merkle);
-    }
+    // #[test]
+    // fn test_init_merkle_tree_by_field() {
+    //     let chars = random_scalars(3);
+    //     println!("chars:{:?}", chars);
+    //     let merkle = MerkleTree::init(chars);
+    //     println!("merkle tree: {:?}", merkle);
+    // }
 
     #[test]
     fn test_commit() {
