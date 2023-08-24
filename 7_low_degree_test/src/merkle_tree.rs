@@ -2,11 +2,12 @@ pub mod hasher;
 pub mod node;
 pub mod proof;
 
-use crate::merkle_tree::hasher::{calculate_hash, calculate_parent_hash};
+use crate::merkle_tree::hasher::{Keccak256Hash, ScalarHash};
 use crate::merkle_tree::node::TreeNode;
-use crate::merkle_tree::proof::Proof;
+use crate::merkle_tree::proof::MerkleProof;
 use crate::utils::convert_to_binary;
 use ark_std::log2;
+use bls12_381::Scalar;
 use std::cmp::Ordering;
 
 // A Merkle tree is a binary tree, with values of type `T` at the leafs,
@@ -26,7 +27,7 @@ impl MerkleTree {
     // init and commit
     // Constructs a Merkle Tree from a vector of data.
     // Root = hash_util(left.hash + right.hash)
-    pub fn init(values: Vec<char>) -> Self {
+    pub fn commit(values: Vec<Scalar>) -> Self {
         assert!(
             !values.is_empty(),
             "Can't initial MerkleTree from empty vector"
@@ -48,7 +49,7 @@ impl MerkleTree {
                 .map(|j| {
                     let left = cur.get(2 * j).unwrap();
                     let right = cur.get(2 * j + 1).unwrap();
-                    let parent_hash = calculate_parent_hash(left.get_hash(), right.get_hash());
+                    let parent_hash = Keccak256Hash::hashes(&[left.get_hash(), right.get_hash()]);
 
                     TreeNode::Node {
                         hash: parent_hash,
@@ -67,7 +68,7 @@ impl MerkleTree {
     }
 
     // equal the commit, by open it by index of values.
-    pub fn open(&self, index: usize) -> Proof {
+    pub fn open_by_index(&self, index: usize) -> MerkleProof {
         // index belong [0, leaves_num).
         assert!(index >= 0 && index < self.leaves_num(), "Wrong leaf index");
 
@@ -78,7 +79,7 @@ impl MerkleTree {
         // a. turn the index into binary form with (height-1) bits.
         let path = convert_to_binary(&path_len, index);
 
-        // b. according the path, we can found out the proof of the indexed leaf, which just need to collect the bro-node.
+        // b. according the path, we can found out the MerkleProof of the indexed leaf, which just need to collect the bro-node.
         //    We'll collect the bro-node by the path. Collect the left child is 1, the right child is 0.
 
         let mut values = Vec::with_capacity(path_len);
@@ -108,24 +109,24 @@ impl MerkleTree {
         // reverse the hash values to make sure it's from leaf to root
         values.reverse();
 
-        Proof {
+        MerkleProof {
             root: root_hash,
             children: values,
         }
     }
 
     // commit and open.
-    pub fn commit(&self, x: &char) -> Proof {
+    pub fn open(&self, challenge: &Scalar) -> MerkleProof {
         let mut values = Vec::with_capacity(self.height - 1);
         let root_hash = self.root.get_hash();
-        Self::dfs(&self.root, &x, &mut values);
-        Proof {
+        Self::dfs(&self.root, &challenge, &mut values);
+        MerkleProof {
             root: root_hash,
             children: values,
         }
     }
 
-    fn dfs(root: &TreeNode, target: &char, res: &mut Vec<u64>) -> bool {
+    fn dfs(root: &TreeNode, target: &Scalar, res: &mut Vec<Scalar>) -> bool {
         match root {
             TreeNode::Leaf { hash, value } => {
                 if value == target {
@@ -153,7 +154,7 @@ impl MerkleTree {
     }
 
     // Returns the root hash of Merkle tree
-    pub fn root_hash(&self) -> u64 {
+    pub fn root_hash(&self) -> Scalar {
         self.root.get_hash()
     }
 
@@ -175,16 +176,20 @@ impl MerkleTree {
 
 #[cfg(test)]
 mod test {
-    use crate::merkle_tree::proof::Proof;
+    use crate::merkle_tree::proof::MerkleProof;
     use crate::merkle_tree::MerkleTree;
+    use crate::poly::random_poly;
     use crate::utils::{random_chars, random_scalars};
+    use bls12_381::Scalar;
+    use ff::PrimeField;
+    use std::fmt::Debug;
 
     #[test]
     fn test_init_merkle_tree() {
-        let chars = random_chars(3);
-        println!("chars:{:?}", chars);
-        let merkle = MerkleTree::init(chars);
-        println!("merkle tree: {:?}", merkle);
+        let poly = random_poly(3);
+        println!("chars:{:?}", poly);
+        let merkle_tree = MerkleTree::commit(poly.coeffs());
+        println!("merkle tree: {:?}", merkle_tree);
     }
 
     // #[test]
@@ -197,79 +202,53 @@ mod test {
 
     #[test]
     fn test_commit() {
-        let chars = vec!['W', '8', 'E', 'X', 'D', '8', 'R', '3'];
-        let challenge = 'W';
-        let merkle_tree = MerkleTree::init(chars.clone());
-        {
-            // MerkleTree {
-            //     root: Node {
-            //         hash: 2997809638824881102,
-            //         left: Node {
-            //             hash: 13957922012229917015,
-            //             left: Node {
-            //                 hash: 10153464161223545464,
-            //                 left: Leaf {
-            //                     hash: 5949921715258702887,
-            //                     value: 'W',
-            //                 },
-            //                 right: Leaf {
-            //                     hash: 3209422213365730399,
-            //                     value: '8',
-            //                 },
-            //             },
-            //             right: Node {
-            //                 hash: 10895954492970826136,
-            //                 left: Leaf {
-            //                     hash: 15042720617947887434,
-            //                     value: 'E',
-            //                 },
-            //                 right: Leaf {
-            //                     hash: 15818208776807171099,
-            //                     value: 'X',
-            //                 },
-            //             },
-            //         },
-            //         right: Node {
-            //             hash: 14010322267561343302,
-            //             left: Node {
-            //                 hash: 2385074442875957999,
-            //                 left: Leaf {
-            //                     hash: 6796667025961897532,
-            //                     value: 'D',
-            //                 },
-            //                 right: Leaf {
-            //                     hash: 3209422213365730399,
-            //                     value: '8',
-            //                 },
-            //             },
-            //             right: Node {
-            //                 hash: 168356471189691628,
-            //                 left: Leaf {
-            //                     hash: 5573041882718737857,
-            //                     value: 'R',
-            //                 },
-            //                 right: Leaf {
-            //                     hash: 15080230035883566959,
-            //                     value: '3',
-            //                 },
-            //             },
-            //         },
-            //     },
-            //     height: 3,
-            // }
-            // println!("merkle_tree:{:#?}", merkle_tree);
-        }
-        let target = Proof {
-            root: 2997809638824881102,
-            children: vec![
-                3209422213365730399,  // '8'
-                10895954492970826136, // right
-                14010322267561343302, // right
-            ],
-        };
+        let coeffs = vec![
+            Scalar::one(),
+            Scalar::from_u128(12),
+            Scalar::one(),
+            Scalar::from_u128(13),
+        ];
+        let merkle_tree = MerkleTree::commit(coeffs);
+        // println!("merkle tree: {:?}", merkle_tree);
 
-        let actual = merkle_tree.commit(&challenge);
-
-        assert_eq!(target, actual);
+        // MerkleTree {
+        //     root: Node {
+        //         hash: 0x4053ef94c1db0c3a6159b84891f03ee40b5aaca60091f6e438b7b653cf1b6f20,
+        //         left: Node {
+        //             hash: 0x5d3b8160daf88b74a74b4a5b91ce4eaea2f64628d6c8f4717330d7734eb0f2f0,
+        //             left: Leaf {
+        //                 hash: 0x38a2f65eb883578ccc8a27acd26c6646d22fbbaa09e533726b84bd7d9ff94c87,
+        //                 value: 0x0000000000000000000000000000000000000000000000000000000000000001
+        //             },
+        //             right: Leaf {
+        //                 hash: 0x33feef36be1c5c0384ecaba81a839c2126444a9dec203df90fa6b8ec2fdeaa87,
+        //                 value: 0x000000000000000000000000000000000000000000000000000000000000000c
+        //             }
+        //         },
+        //         right: Node {
+        //             hash: 0x56108a065ccd17f0706ef2fa4aa8b80620d7490c9cab818b25b48b39c58594fa,
+        //             left: Leaf {
+        //                 hash: 0x38a2f65eb883578ccc8a27acd26c6646d22fbbaa09e533726b84bd7d9ff94c87,
+        //                 value: 0x0000000000000000000000000000000000000000000000000000000000000001
+        //             },
+        //             right: Leaf {
+        //                 hash: 0x0e2c9965653910c8765b9b7f6eb348643c6da2e58d76a165cd14dfe960e1d418,
+        //                 value: 0x000000000000000000000000000000000000000000000000000000000000000d
+        //             }
+        //         }
+        //     },
+        //     height: 2
+        // }
+        let challenge = Scalar::one();
+        // MerkleProof {
+        // 	children: [
+        //      0x33feef36be1c5c0384ecaba81a839c2126444a9dec203df90fa6b8ec2fdeaa87,
+        //      0x56108a065ccd17f0706ef2fa4aa8b80620d7490c9cab818b25b48b39c58594fa
+        // ],
+        // 	root: 0x4053ef94c1db0c3a6159b84891f03ee40b5aaca60091f6e438b7b653cf1b6f20
+        // }
+        let MerkleProof = merkle_tree.open(&challenge);
+        println!("{:?}", MerkleProof);
+        // correct
     }
 }

@@ -10,6 +10,7 @@ use std::ops::Div;
 // abstraction to set the hash function used
 pub trait ScalarHash<F: PrimeField>: Clone {
     fn hash(inputs: &F) -> F;
+    fn hashes(inputs: &[F]) -> F;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -17,30 +18,41 @@ pub struct Keccak256Hash<F: PrimeField> {
     _marker: PhantomData<F>,
 }
 
-impl<F: PrimeField> ScalarHash<F> for Keccak256Hash<F> {
-    fn hash(input: &F) -> F {
-        // fn get_scalar() -> C::Scalar {
-        let get_scalar = |r: &[u8; 32]| {
-            let mut repr = F::Repr::default();
-            println!("{:?}", r);
-            repr.as_mut().copy_from_slice(r);
-            println!("{:?}", repr.as_ref());
-
-            F::from_repr(repr).unwrap()
-        };
-
+impl ScalarHash<Scalar> for Keccak256Hash<Scalar> {
+    // same as calculate_hash, this is for Scalar
+    fn hash(input: &Scalar) -> Scalar {
         // hash
         let mut h = Keccak256::new();
         h.update(input.to_repr().as_ref());
 
         // let r = h.finalize().as_slice();
-        let mut slice: [u8; 32] = h.finalize().as_slice().try_into().unwrap();
-        for i in (0..16) {
-            slice[i] = 0;
-        }
-        // todo sometime will meet bug.
+        let slice: [u8; 32] = h.finalize().as_slice().try_into().unwrap();
         // get_scalar
-        get_scalar(&slice)
+        let bytes = [slice.clone(), slice]
+            .concat()
+            .as_slice()
+            .try_into()
+            .unwrap();
+        Scalar::from_bytes_wide(&bytes)
+    }
+
+    // same as calculate_parent_hash, this is for Scalar
+    fn hashes(inputs: &[Scalar]) -> Scalar {
+        // hash
+        let mut h = Keccak256::new();
+        for x in inputs {
+            h.update(x.to_repr().as_ref());
+        }
+
+        // let r = h.finalize().as_slice();
+        let slice: [u8; 32] = h.finalize().as_slice().try_into().unwrap();
+        // get_scalar
+        let bytes = [slice.clone(), slice]
+            .concat()
+            .as_slice()
+            .try_into()
+            .unwrap();
+        Scalar::from_bytes_wide(&bytes)
     }
 }
 
@@ -76,10 +88,6 @@ mod test {
 
     #[test]
     fn test_calculate_parent_hash_with_scalar() {
-        // [64, 26, 193, 249, 18, 134, 13, 197, 176, 206, 213, 209, 169, 26, 96, 197, 249, 170, 154, 113, 215, 44, 217, 239, 125, 205, 16, 2, 212, 55, 219, 102]
-        // [70, 73, 151, 28, 96, 138, 140, 117, 223, 67, 12, 121, 226, 41, 105, 81, 193, 252, 27, 241, 167, 41, 63, 4, 111, 125, 34, 135, 96, 144, 190, 133]
-        // 0x66db37d40210cd7defd92cd7719aaaf9c5601aa9d1d5ceb0c50d8612f9c11a40
-
         let left = Scalar::random(&mut OsRng);
         let right = Scalar::random(&mut OsRng);
 
@@ -89,7 +97,7 @@ mod test {
         let left = Scalar::from_u128(10);
         let right = Scalar::from_u128(12);
 
-        let parent = Keccak256Hash::hash(&left.add(&right));
+        let parent = Keccak256Hash::hashes(&[left, right]);
         println!("{:?}", parent);
     }
 }

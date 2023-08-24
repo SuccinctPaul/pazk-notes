@@ -4,12 +4,15 @@ pub mod verifier;
 use self::prover::Prover;
 use self::verifier::Verifier;
 use crate::poly::*;
+use bls12_381::Scalar;
+use std::iter::Scan;
 
 // Both P and V have oracle access to function f.
 // V wants to test if f is polynomial with deg(f) ≤ d.
 pub struct LDT {
     prover: Prover,
     verifier: Verifier,
+    z: Scalar, // the random one, with
 }
 
 impl LDT {

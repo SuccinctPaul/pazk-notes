@@ -1,5 +1,5 @@
-use crate::merkle_tree::MerkleProof;
-use crate::poly::split_poly;
+use crate::merkle_tree::{proof::MerkleProof, MerkleTree};
+use crate::poly::{split_poly, Polynomial};
 use crate::transcript::default::Keccak256Transcript;
 use crate::transcript::Transcript;
 use ark_std::log2;
@@ -7,8 +7,6 @@ use bls12_381::Scalar;
 use rayon::iter::split;
 use std::iter::Scan;
 use std::ops::{Add, Mul};
-use sumcheck::poly::univar_poly::Polynomial;
-use Merkle_tree_commitment::merkle_tree::MerkleTree;
 
 #[derive(Default)]
 pub struct Proof {
@@ -67,12 +65,12 @@ impl Prover {
 
         // commit phase
         // merkle tree commit the poly fi+1
-        let merkle_tree = MerkleTree::init(&p_i_plus_1.coeffs());
+        let merkle_tree = MerkleTree::commit(&p_i_plus_1.coeffs());
         let cm_i = merkle_tree.root_hash();
 
         // query phase
-        let f_z = p_i_plus_1.evaluate(z.clone());
-        let f_neg_z = p_i_plus_1.evaluate(z.neg());
+        let f_z = p_i_plus_1.evaluate(z_i.clone());
+        let f_neg_z = p_i_plus_1.evaluate(z_i.neg());
 
         proof.commits.push(cm_i);
         proof.opens.push((f_z, f_neg_z));
