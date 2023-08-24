@@ -49,7 +49,7 @@ impl MerkleTree {
                 .map(|j| {
                     let left = cur.get(2 * j).unwrap();
                     let right = cur.get(2 * j + 1).unwrap();
-                    let parent_hash = Keccak256Hash::hashes(&[left.get_hash(), right.get_hash()]);
+                    let parent_hash = Keccak256Hash::hash(&left.get_hash().add(&right.get_hash()));
 
                     TreeNode::Node {
                         hash: parent_hash,
@@ -172,6 +172,17 @@ impl MerkleTree {
     pub fn nodes_num(&self) -> usize {
         2 ^ self.height - 1
     }
+
+    pub fn verify(challenge: &Scalar, proof: &MerkleProof) {
+        let target = proof.root;
+
+        let leaf_hash = Keccak256Hash::hash(&challenge);
+        let actual = proof
+            .children
+            .iter()
+            .fold(leaf_hash, |acc, eval| Keccak256Hash::hash(&acc.add(&eval)));
+        assert_eq!(target, actual, "Verifier: verify failed!")
+    }
 }
 
 #[cfg(test)]
@@ -201,7 +212,7 @@ mod test {
     // }
 
     #[test]
-    fn test_commit() {
+    fn test_commit_and_verify() {
         let coeffs = vec![
             Scalar::one(),
             Scalar::from_u128(12),
@@ -247,8 +258,10 @@ mod test {
         // ],
         // 	root: 0x4053ef94c1db0c3a6159b84891f03ee40b5aaca60091f6e438b7b653cf1b6f20
         // }
-        let MerkleProof = merkle_tree.open(&challenge);
-        println!("{:?}", MerkleProof);
+        let proof = merkle_tree.open(&challenge);
+        println!("{:?}", proof);
         // correct
+
+        MerkleTree::verify(&challenge, &proof);
     }
 }
