@@ -74,7 +74,7 @@ impl MerkleTree {
         // index belong [0, leaves_num).
         assert!(index >= 0 && index < self.leaves_num(), "Wrong leaf index");
 
-        let path_len = (self.height - 1);
+        let path_len = self.height - 1;
         // get leaf-root path,
         // Suppose the left child is 0, the right child is 1, so the path can be indexed as binary form with (height-1) bits.
         // eg: tree height is 3, which has total 2^2 leaves, the leave can ben indexed as (00, 01, 10, 11).
@@ -202,7 +202,7 @@ impl MerkleTree {
         // index belong [0, leaves_num).
         assert!(index >= 0 && index < self.leaves_num(), "Wrong leaf index");
 
-        let path_len = (self.height - 1);
+        let path_len = self.height - 1;
         // 1. get leaf-root path,
         // Suppose the left child is 0, the right child is 1, so the path can be indexed as binary form with (height-1) bits.
         // eg: tree height is 3, which has total 2^2 leaves, the leave can ben indexed as (00, 01, 10, 11).

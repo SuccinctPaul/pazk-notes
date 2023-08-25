@@ -11,8 +11,8 @@ use std::ops::{Add, Mul};
 
 pub struct Prover {
     poly: Polynomial,
-    z: Scalar, // todo use the index of coeffs, start from 1 for easy implement
-    merkle_c: Scalar,
+    z: Scalar,        // The origin value for evaluate.
+    merkle_c: Scalar, // the commit challenge.
 }
 
 impl Prover {
@@ -20,7 +20,7 @@ impl Prover {
         Self { poly, z, merkle_c }
     }
 
-    pub fn prove(&self) {
+    pub fn prove(&self) -> LDTProof {
         let mut transcript = Keccak256Transcript::default();
         let mut proof = LDTProof::default();
 
@@ -30,19 +30,26 @@ impl Prover {
         // P starts from f(x), and for i = 0 sets f0(x) = f(x).
         let p_0 = self.poly;
         let mut p_i = p_0;
+
+        // Use the index of coeffs as the challenge, so challenge in [1,2,4,2^i,d), by the index is [0,..,2^i-1,..,d-1].
+        let mut merkle_c_i = self.merkle_c;
         let mut z_i = self.z; // z^1 = z^(2^0)
         for i in 0..d {
-            p_i = Self::split_and_fold(&mut transcript, &mut proof, &p_i, z_i.clone());
+            p_i = Self::split_and_fold(&mut transcript, &mut proof, &p_i, z_i.clone(), merkle_c_i);
+            // prepare for next round
             z_i = z_i.mul(&z_i); // z^(2^i)
+            merkle_c_i.double(); // double.
         }
+
+        proof
     }
 
     pub fn split_and_fold(
-        &self,
         transcript: &mut Keccak256Transcript,
         proof: &mut LDTProof,
         p_i: &Polynomial,
         z_i: Scalar,
+        merkle_c_i: Scalar,
     ) -> Polynomial {
         assert_eq!(p_i.degree(), 0, "poly.degree=0, can't split_and_fold");
         // 1. split
@@ -64,7 +71,7 @@ impl Prover {
         //  merkle tree commit the poly fi+1
         let merkle_tree = MerkleTree::commit(p_i_plus_1.coeffs().clone());
         // 4. query phase
-        let cm_i = merkle_tree.open(&self.merkle_c);
+        let cm_i = merkle_tree.open(&merkle_c_i);
 
         // 5. evaluate
         let f_z = p_i_plus_1.evaluate(z_i.clone());

@@ -6,6 +6,9 @@ use self::verifier::Verifier;
 use crate::merkle_tree::proof::MerkleProof;
 use crate::poly::*;
 use bls12_381::Scalar;
+use ff::Field;
+use rand_core::OsRng;
+use std::env::consts::OS;
 use std::iter::Scan;
 
 #[derive(Default)]
@@ -20,23 +23,34 @@ pub struct LDTProof {
 pub struct LDT {
     prover: Prover,
     verifier: Verifier,
-    z: Scalar, // the random one, with
 }
 
 impl LDT {
     pub fn new(degree: usize) -> Self {
         let poly = random_poly(degree);
+        let z = Scalar::random(OsRng);
+        let challenge = poly.coeffs().get(0).unwrap();
+        let prover = Prover::init(poly, z, challenge.clone());
 
-        let prover = Prover::init(poly);
-
-        let verifier = Verifier { target_deg: degree };
+        let verifier = Verifier::init(degree, z, challenge.clone());
 
         Self { prover, verifier }
     }
 
-    pub fn run_protocol(&mut self) {
-        // let proofs = self.prover.prove();
-        //
-        // self.verifier.verify(proofs);
+    pub fn run_protocol(&self) {
+        let proofs = self.prover.prove();
+
+        self.verifier.verify(proofs);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ldt::LDT;
+
+    #[test]
+    fn test() {
+        let ldt = LDT::new(3);
+        ldt.run_protocol();
     }
 }
