@@ -11,7 +11,7 @@ use std::ops::{Add, Mul};
 
 pub struct Prover {
     poly: Polynomial,
-    z: Scalar,
+    z: Scalar, // todo use the index of coeffs, start from 1 for easy implement
     merkle_c: Scalar,
 }
 

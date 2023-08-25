@@ -32,9 +32,10 @@ impl MerkleTree {
             "Can't initial MerkleTree from empty vector"
         );
         let leaves_num = values.len();
-        let height: usize = log2(leaves_num) as usize;
-        assert_eq!(1 << height, leaves_num, "It's not a perfect tree");
+        let height: usize = 1 + log2(leaves_num) as usize;
+        assert_eq!(1 << (height - 1), leaves_num, "It's not a perfect tree");
 
+        // lowest level
         let leaves_nodes = values
             .iter()
             .map(|v| TreeNode::new_leaf(*v))
@@ -42,7 +43,7 @@ impl MerkleTree {
 
         // construct tree by leaves.
         let mut cur = leaves_nodes;
-        for i in 0..height {
+        for i in 0..(height - 1) {
             let cur_len = cur.len();
             let parant = (0..(cur_len / 2))
                 .map(|j| {

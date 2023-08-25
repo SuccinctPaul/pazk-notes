@@ -12,7 +12,7 @@ impl Prover {
     pub fn random_values(k: usize) -> Self {
         let values = random_chars(k);
         let merkle_tree = MerkleTree::init(values.clone());
-        assert_eq!(merkle_tree.height(), k, "Unexpected Merkle tree height");
+        assert_eq!(merkle_tree.height() - 1, k, "Unexpected Merkle tree height");
         Self {
             values,
             merkle_tree,
