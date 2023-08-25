@@ -1,5 +1,4 @@
-//! this module contains an implementation of Kate-Zaverucha-Goldberg polynomial commitments
-
+//! todo need rewrite.
 mod poly;
 
 use crate::poly::*;
@@ -9,6 +8,7 @@ use group::prime::PrimeCurveAffine;
 use group::{Curve, Group};
 use pairing::Engine;
 use rand::{Rng, RngCore};
+use rand_core::OsRng;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::Neg;
@@ -47,9 +47,10 @@ impl<E: Engine + Debug> Kzg<E> {
     /// Generate the trusted setup. Is expected that this function is called
     ///   in a safe environment what will be destroyed after its execution
     /// The `n` parameter is the maximum number of points that can be proved
-    pub fn trusted_setup<R: RngCore>(n: usize, rng: R) -> Self {
-        let tau = E::Fr::random(rng);
+    pub fn trusted_setup(n: usize) -> Self {
+        let tau = E::Fr::random(OsRng);
 
+        // obtain: s, ..., s^i,..., s^n
         let powers_of_tau: Vec<E::Fr> = (0..n)
             .into_iter()
             .scan(E::Fr::ONE, |acc, _| {
@@ -59,11 +60,13 @@ impl<E: Engine + Debug> Kzg<E> {
             })
             .collect();
 
+        // obtain [s]1
         let pow_tau_g1: Vec<E::G1> = powers_of_tau
             .iter()
             .map(|tau_pow| E::G1Affine::generator() * tau_pow)
             .collect();
 
+        // obtain [s]2
         let pow_tau_g2: Vec<E::G2> = powers_of_tau
             .iter()
             .map(|tau_pow| E::G2Affine::generator() * tau_pow)
@@ -134,7 +137,7 @@ mod test {
     #[test]
     fn test_kzg() {
         // Create a trustd setup that allows maximum 4 points (degree+1)
-        let kzg = Kzg::<Bls12>::trusted_setup(5, OsRng);
+        let kzg = Kzg::<Bls12>::trusted_setup(5);
 
         // define the set of points (the "population"), and create a polinomial
         // for them, as well its polinomial commitment, see the polinomial commitment
