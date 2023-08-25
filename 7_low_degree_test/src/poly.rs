@@ -5,6 +5,7 @@ pub use sumcheck::poly::univar_poly::*;
 
 // fi(x) = fi^L (x2) + x fi^R (x2)
 pub fn split_poly(p: &Polynomial) -> (Polynomial, Polynomial) {
+    assert!(p.degree() != 0, "poly.degree=0, can't split_and_fold");
     // let d = p.degree() + 1;
     let coeffs = p.coeffs();
     let odd: Vec<Scalar> = coeffs.iter().step_by(2).cloned().collect();
@@ -42,5 +43,22 @@ mod test {
             poly.evaluate(z.clone()),
             pL.evaluate(z.square()) + z * pR.evaluate(z.square())
         );
+    }
+
+    #[test]
+    fn test_split_more() {
+        // let deg = 5;
+        for deg in 1..5 {
+            let poly = random_poly(deg);
+
+            let (pL, pR) = split_poly(&poly);
+
+            // check that f(z) == fL(x^2) + x * fR(x^2), for a rand z
+            let z = Scalar::random(OsRng);
+            assert_eq!(
+                poly.evaluate(z.clone()),
+                pL.evaluate(z.square()) + z * pR.evaluate(z.square())
+            );
+        }
     }
 }

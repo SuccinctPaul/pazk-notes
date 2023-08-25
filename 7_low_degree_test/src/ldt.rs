@@ -29,10 +29,10 @@ impl LDT {
     pub fn new(degree: usize) -> Self {
         let poly = random_poly(degree);
         let z = Scalar::random(OsRng);
-        let challenge = poly.coeffs().get(0).unwrap();
-        let prover = Prover::init(poly, z, challenge.clone());
+        let challenge: Scalar = (*poly.coeffs().get(0).unwrap()).clone();
+        let prover = Prover::init(poly, z.clone(), challenge.clone());
 
-        let verifier = Verifier::init(degree, z, challenge.clone());
+        let verifier = Verifier::init(degree, z, challenge);
 
         Self { prover, verifier }
     }
@@ -50,6 +50,7 @@ mod test {
 
     #[test]
     fn test() {
+        // degree = 1<<k -1 to satisfy the merkle tree; here k = 2;
         let ldt = LDT::new(3);
         ldt.run_protocol();
     }
