@@ -1,364 +1,338 @@
-use bls12_381::Scalar as Fr;
-use ff::{Field, PrimeField};
+use bls12_381::Scalar;
+use ff::{BatchInvert, Field};
+use rand_core::OsRng;
+use rayon::{current_num_threads, scope};
 
-/// A polynomial field scalar
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Poly<F: Field>(pub Vec<F>);
-
-// NOTE! only used for Bn256::Fr.
-impl Poly<Fr> {
-    /// Creates a Poly from u64 coeffs
-    pub fn from(coeffs: &[u64]) -> Self {
-        Poly::new(coeffs.iter().map(|n| Fr::from(*n)).collect::<Vec<Fr>>())
-    }
+// p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1)
+//
+// coeffs: [a_0, a_1, ..., a_n]
+// basis: X^[n-1]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Polynomial<F: Field> {
+    pub(crate) coeffs: Vec<F>,
 }
 
-impl<F: Field> Poly<F> {
-    /// Creates a Poly from its `coefficients` with order of poly `coeff[0]*x^0, ..., coeff[m-1]*x^m`
-    /// for safety, input value is normalized (trailing zeroes are removed)
-    pub fn new(coeffs: Vec<F>) -> Self {
-        let mut poly = Poly(coeffs);
-        poly.normalize();
-        poly
+impl<F: Field> Polynomial<F> {
+    pub fn random(k: usize) -> Self {
+        let n = 1 << k;
+        let coeffs = (0..n).map(|_| F::random(OsRng)).collect::<Vec<_>>();
+        Self::from_coeffs(coeffs)
     }
 
-    /// Returns p(x)=0
+    pub fn from_coeffs(coeffs: Vec<F>) -> Self {
+        Self { coeffs }
+    }
+
+    // used by div.
     pub fn zero() -> Self {
-        Poly(vec![F::ZERO])
-    }
-
-    /// Returns p(x)=1
-    pub fn one() -> Self {
-        Poly(vec![F::ONE])
-    }
-
-    /// Creates a poly that satisfy a set of `p` points, by using [lagrange](https://alinush.github.io/2022/07/28/lagrange-interpolation.html)
-    ///
-    /// ϕ(X)=∑yi⋅Li(X), where Li(X)=∏(X−xj)/(xi−xj)
-    ///
-    /// ## Examples
-    /// ```text
-    ///    // f(x)=x is a polinomial that fits in (1,1), (2,2) points
-    ///    assert_eq!(
-    ///      Poly::lagrange(&vec![
-    ///          (Scalar::from(1), Scalar::from(1)),
-    ///          (Scalar::from(2), Scalar::from(2))
-    ///      ]),
-    ///      Poly::from(&[0, 1]) // f(x) = x
-    ///    );
-    /// ```
-    pub fn lagrange(p: &[(F, F)]) -> Self {
-        let k = p.len();
-        let mut l = Poly::zero();
-        for j in 0..k {
-            let mut l_j = Poly::one();
-            for i in 0..k {
-                if i != j {
-                    let c = (p[j].0 - p[i].0).invert().unwrap();
-                    l_j = &l_j * &Poly::new(vec![-(c * p[i].0), c]);
-                }
-            }
-            l += &(&l_j * &p[j].1);
+        Self {
+            coeffs: vec![F::ZERO],
         }
-        l
     }
 
-    /// Evals the polynomial at the A point
-    /// # Examples
-    /// ```text
-    ///    // check that (x^2+2x+1)(2) = 9
-    ///     let poly = Poly::from(&[1, 2, 1])
-    ///     assert_eq!(
-    ///         poly.eval(&Scalar::from(2)),
-    ///         Scalar::from(9)
-    ///     );
-    /// ```
-    pub fn eval(&self, x: &F) -> F {
-        let mut x_pow = F::ONE;
-        let mut y = self.0[0];
-        for (i, _) in self.0.iter().enumerate().skip(1) {
-            x_pow *= x;
-            y += &(x_pow * self.0[i]);
-        }
-        y
-    }
-
-    /// Evals the polynomial supplying the `x_pows` [x^0, x^1, x^2, ..., x^m]
-    pub fn eval_with_pows(&self, x_pow: &[F]) -> F {
-        let mut y = self.0[0];
-        for (i, _) in self.0.iter().enumerate() {
-            y += &(x_pow[i] * self.0[i]);
-        }
-        y
-    }
-
-    /// Returns the degree of the polynomial
-    ///
-    /// poly.size = poly.degree + 1
+    // The degree of the polynomial
     pub fn degree(&self) -> usize {
-        self.0.len() - 1
+        assert!(self.coeffs.len() > 0);
+        self.coeffs.len() - 1
+    }
+    // The len of the polynomial coeffs
+    pub fn len(&self) -> usize {
+        self.coeffs.len()
     }
 
-    /// Returns the coeffs size of the polynomial
-    pub fn size(&self) -> usize {
-        self.0.len()
+    pub fn coeffs(&self) -> Vec<F> {
+        self.coeffs.clone()
     }
 
-    /// Normalizes the coefficients, removing ending zeroes
-    /// # Examples
-    /// ```text
-    ///    use a0kzg::Poly;
-    ///    let mut p1 = Poly::from(&[1, 0, 0, 0]);
-    ///    p1.normalize();
-    ///    assert_eq!(p1, Poly::from(&[1]));
-    /// ```
-    pub fn normalize(&mut self) {
-        if self.0.len() > 1 && self.0[self.0.len() - 1] == F::ZERO {
-            let zero = F::ZERO;
-            let first_non_zero = self.0.iter().rev().position(|p| p != &zero);
-            if let Some(first_non_zero) = first_non_zero {
-                self.0.resize(self.0.len() - first_non_zero, F::ZERO);
-            } else {
-                self.0.resize(1, F::ZERO);
+    // p(x)=∑y_j⋅L_j(X), where
+    // y_j: [a_0, a_1, ..., a_n].
+    // basis: L_j(X)=∏(X−x_k)/(x_j−x_k)
+    //
+    // domain: x, most case is that{0, 1, . . . , n − 1}
+    // evals: [a_0, a_1, ..., a_n]
+    //
+    // we can use encode points as (domain, eval) to polynomials
+    // the poly
+    pub fn lagrange_interpolate(domains: Vec<F>, evals: Vec<F>) -> Self {
+        assert_eq!(domains.len(), evals.len());
+
+        if evals.len() == 1 {
+            // Constant polynomial
+            Self {
+                coeffs: vec![evals[0]],
             }
-        }
-    }
-
-    /// Returns if p(x)=0
-    pub fn is_zero(&self) -> bool {
-        *self == Self::zero()
-    }
-
-    /// Set the `i`-th coefficient with new value
-    /// # Examples
-    /// ```text
-    ///   let mut poly = Poly::zero();
-    ///   poly.set(2, Scalar::from(7));
-    ///   assert_eq!(poly, Poly::from(&[0, 0, 7]));
-    ///  ```
-    pub fn set(&mut self, index: usize, p: F) {
-        let target_size = index + 1;
-        if self.size() < target_size {
-            self.0.resize(target_size, F::ZERO);
-        }
-        self.0[index] = p;
-        self.normalize();
-    }
-
-    /// Returns the `i`-th coefficient
-    /// # Examples
-    /// ```text
-    ///   let mut poly = Poly::zero();
-    ///   poly.set(2, Scalar::from(7));
-    ///   assert_eq!(poly.get(2), Some(&Scalar::from(7)));
-    ///   assert_eq!(poly.get(3), None);
-    ///  ```
-    pub fn get(&mut self, index: usize) -> Option<&F> {
-        self.0.get(index)
-    }
-}
-
-impl<F: Field> std::ops::AddAssign<&Poly<F>> for Poly<F> {
-    fn add_assign(&mut self, rhs: &Poly<F>) {
-        for n in 0..std::cmp::max(self.0.len(), rhs.0.len()) {
-            if n >= self.0.len() {
-                self.0.push(rhs.0[n]);
-            } else if n < self.0.len() && n < rhs.0.len() {
-                self.0[n] += rhs.0[n];
-            }
-        }
-        self.normalize();
-    }
-}
-
-impl<F: Field> std::ops::AddAssign<&F> for Poly<F> {
-    fn add_assign(&mut self, rhs: &F) {
-        self.0[0] += rhs;
-    }
-}
-
-impl<F: Field> std::ops::SubAssign<&Poly<F>> for Poly<F> {
-    fn sub_assign(&mut self, rhs: &Poly<F>) {
-        for n in 0..std::cmp::max(self.0.len(), rhs.0.len()) {
-            if n >= self.0.len() {
-                self.0.push(rhs.0[n]);
-            } else if n < self.0.len() && n < rhs.0.len() {
-                self.0[n] -= rhs.0[n];
-            }
-        }
-        self.normalize();
-    }
-}
-
-impl<F: Field> std::ops::Mul<&Poly<F>> for &Poly<F> {
-    type Output = Poly<F>;
-    fn mul(self, rhs: &Poly<F>) -> Self::Output {
-        let mut mul: Vec<F> = std::iter::repeat(F::ZERO)
-            .take(self.0.len() + rhs.0.len() - 1)
-            .collect();
-        for n in 0..self.0.len() {
-            for m in 0..rhs.0.len() {
-                mul[n + m] += self.0[n] * rhs.0[m];
-            }
-        }
-        Poly(mul)
-    }
-}
-
-impl<F: Field> std::ops::Mul<&F> for &Poly<F> {
-    type Output = Poly<F>;
-    fn mul(self, rhs: &F) -> Self::Output {
-        if rhs == &F::ZERO {
-            Poly::zero()
         } else {
-            Poly(self.0.iter().map(|v| *v * *rhs).collect::<Vec<_>>())
-        }
-    }
-}
+            let poly_size = domains.len();
+            let lag_basis_poly_size = poly_size - 1;
 
-impl<F: Field> std::ops::Div for Poly<F> {
-    type Output = (Poly<F>, Poly<F>);
+            // 1. divisors = vec(x_j - x_k). prepare for L_j(X)=∏(X−x_k)/(x_j−x_k)
+            let mut divisors = Vec::with_capacity(poly_size);
+            for (j, x_j) in domains.iter().enumerate() {
+                // divisor_j
+                let mut divisor = Vec::with_capacity(lag_basis_poly_size);
+                // obtain domain for x_k
+                for x_k in domains
+                    .iter()
+                    .enumerate()
+                    .filter(|&(k, _)| k != j)
+                    .map(|(_, x)| x)
+                {
+                    divisor.push(*x_j - x_k);
+                }
+                divisors.push(divisor);
+            }
+            // Inverse (x_j - x_k)^(-1) for each j != k to compute L_j(X)=∏(X−x_k)/(x_j−x_k)
+            divisors
+                .iter_mut()
+                .flat_map(|v| v.iter_mut())
+                .batch_invert();
 
-    fn div(self, rhs: Poly<F>) -> Self::Output {
-        let (mut q, mut r) = (Poly::zero(), self);
-        while !r.is_zero() && r.degree() >= rhs.degree() {
-            let lead_r = r.0[r.0.len() - 1];
-            let lead_d = rhs.0[rhs.0.len() - 1];
-            let mut t = Poly::zero();
-            t.set(r.0.len() - rhs.0.len(), lead_r * lead_d.invert().unwrap());
-            q += &t;
-            r -= &(&rhs * &t);
-        }
-        (q, r)
-    }
-}
-impl<F: PrimeField> std::fmt::Display for Poly<F> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut first: bool = true;
-        for i in (0..=self.degree()).rev() {
-            let bi_n =
-                num_bigint::BigUint::from_bytes_le(&self.0[i].to_repr().as_ref()).to_str_radix(10);
-            let bi_inv = num_bigint::BigUint::from_bytes_le(self.0[i].neg().to_repr().as_ref())
-                .to_str_radix(10);
+            // 2. Calculate  L_j(X) : L_j(X)=∏(X−x_k) divisors_j
+            let mut L_j_vec: Vec<Vec<F>> = Vec::with_capacity(poly_size);
 
-            if bi_n == "0" {
-                continue;
+            for (j, divisor_j) in divisors.into_iter().enumerate() {
+                let mut L_j: Vec<F> = Vec::with_capacity(poly_size);
+                L_j.push(F::ONE);
+
+                // (X−x_k) * divisors_j
+                let mut product = Vec::with_capacity(lag_basis_poly_size);
+
+                // obtain domain for x_k
+                for (x_k, divisor) in domains
+                    .iter()
+                    .enumerate()
+                    .filter(|&(k, _)| k != j)
+                    .map(|(_, x)| x)
+                    .zip(divisor_j.into_iter())
+                {
+                    product.resize(L_j.len() + 1, F::ZERO);
+
+                    // loop (poly_size + 1) round
+                    // calculate L_j(X)=∏(X−x_k) divisors_j with coefficient form.
+                    for ((a, b), product) in L_j
+                        .iter()
+                        .chain(std::iter::once(&F::ZERO))
+                        .zip(std::iter::once(&F::ZERO).chain(L_j.iter()))
+                        .zip(product.iter_mut())
+                    {
+                        *product = *a * (-divisor * x_k) + *b * divisor;
+                    }
+                    std::mem::swap(&mut L_j, &mut product);
+                }
+
+                assert_eq!(L_j.len(), poly_size);
+                assert_eq!(product.len(), poly_size - 1);
+
+                L_j_vec.push(L_j);
             }
 
-            if bi_inv.len() < 20 && bi_n.len() > 20 {
-                if bi_inv == "1" && i != 0 {
-                    write!(f, "-")?;
+            // p(x)=∑y_j⋅L_j(X) in coefficients
+            let mut final_poly = vec![F::ZERO; poly_size];
+            // 3. p(x)=∑y_j⋅L_j(X)
+            for (L_j, y_j) in L_j_vec.iter().zip(evals) {
+                for (final_coeff, L_j_coeff) in final_poly.iter_mut().zip(L_j.into_iter()) {
+                    *final_coeff += L_j_coeff.mul(y_j);
+                }
+            }
+            Self { coeffs: final_poly }
+        }
+    }
+
+    // This evaluates a polynomial (in coefficient form) at `x`.
+    pub fn evaluate(&self, x: F) -> F {
+        let coeffs = self.coeffs.clone();
+        let poly_size = self.coeffs.len();
+
+        // p(x) = = a_0 + a_1 * X + ... + a_n * X^(n-1), revert it and fold sum it
+        fn eval<F: Field>(poly: &[F], point: F) -> F {
+            poly.iter()
+                .rev()
+                .fold(F::ZERO, |acc, coeff| acc * point + coeff)
+        }
+
+        let num_threads = current_num_threads();
+        if poly_size * 2 < num_threads {
+            eval(&coeffs, x)
+        } else {
+            let chunk_size = (poly_size + num_threads - 1) / num_threads;
+            let mut parts = vec![F::ZERO; num_threads];
+            scope(|scope| {
+                for (chunk_idx, (out, c)) in parts
+                    .chunks_mut(1)
+                    .zip(coeffs.chunks(chunk_size))
+                    .enumerate()
+                {
+                    scope.spawn(move |_| {
+                        let start = chunk_idx * chunk_size;
+                        out[0] = eval(c, x) * x.pow_vartime(&[start as u64, 0, 0, 0]);
+                    });
+                }
+            });
+            parts.iter().fold(F::ZERO, |acc, coeff| acc + coeff)
+        }
+    }
+}
+
+impl<F: Field> std::ops::Mul<&Polynomial<F>> for &Polynomial<F> {
+    type Output = Polynomial<F>;
+    fn mul(self, rhs: &Polynomial<F>) -> Self::Output {
+        let mut coeffs: Vec<F> = vec![F::ZERO; self.coeffs.len() + rhs.coeffs.len() - 1];
+        for n in 0..self.coeffs.len() {
+            for m in 0..rhs.coeffs.len() {
+                coeffs[n + m] += self.coeffs[n] * rhs.coeffs[m];
+            }
+        }
+        Self::Output { coeffs }
+    }
+}
+
+impl<F: Field> std::ops::Mul<&F> for &Polynomial<F> {
+    type Output = Polynomial<F>;
+    fn mul(self, rhs: &F) -> Self::Output {
+        let coeffs = if rhs == &F::ZERO {
+            vec![F::ZERO]
+        } else {
+            self.coeffs.iter().map(|c| c.mul(rhs)).collect::<Vec<F>>()
+        };
+        Self::Output { coeffs }
+    }
+}
+
+impl<F: Field> std::ops::Add<&Polynomial<F>> for &Polynomial<F> {
+    type Output = Polynomial<F>;
+
+    fn add(self, rhs: &Polynomial<F>) -> Self::Output {
+        let max_len = std::cmp::max(self.coeffs.len(), rhs.coeffs.len());
+        let coeffs = (0..max_len)
+            .into_iter()
+            .map(|n| {
+                if n >= self.coeffs.len() {
+                    rhs.coeffs[n]
+                } else if n >= rhs.coeffs.len() {
+                    self.coeffs[n]
                 } else {
-                    write!(f, "-{}", bi_inv)?;
+                    // n < self.0.len() && n < rhs.0.len()
+                    self.coeffs[n] + rhs.coeffs[n]
                 }
-            } else {
-                if !first {
-                    write!(f, "+")?;
-                }
-                if i == 0 || bi_n != "1" {
-                    write!(f, "{}", bi_n)?;
-                }
-            }
-            if i >= 1 {
-                write!(f, "x")?;
-            }
-            if i >= 2 {
-                write!(f, "^{}", i)?;
-            }
-            first = false;
-        }
-        Ok(())
+            })
+            .collect::<Vec<F>>();
+        Self::Output { coeffs }
     }
 }
+// impl<F: Field> std::ops::Div for &Polynomial<F> {
+//     type Output = (Polynomial<F>, Polynomial<F>);
+//
+//     fn div(self, rhs: &Polynomial<F>) -> Self::Output {
+//         // init the (quotient, remainder)
+//         let (mut q, mut r) = (Polynomial::zero(), self);
+//
+//         // r is not zero poly, and division.degree > divisor.degree.
+//         while *r != Polynomial::zero() && r.degree() >= rhs.degree() {
+//             let r_coeff = r.coeffs();
+//             let rhs_coeff = rhs.coeffs();
+//
+//             let lead_r = r_coeff[r_coeff.len() - 1];
+//             let lead_d = rhs_coeff[rhs_coeff.len() - 1];
+//             let mut t = Polynomial::zero();
+//             t.set(
+//                 r_coeff.len() - rhs_coeff.len(),
+//                 lead_r * lead_d.invert().unwrap(),
+//             );
+//             q += &t;
+//             r -= &(&rhs * &t);
+//         }
+//         (q, r)
+//     }
+// }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use bls12_381::Scalar as Fr;
-    use bls12_381::*;
+    use ff::PrimeField;
+    use std::ops::{Add, Div, Mul};
 
     #[test]
-    fn test_poly_add() {
-        let mut p246 = Poly::from(&[1, 2, 3]);
-        p246 += &Poly::from(&[1, 2, 3]);
-        assert_eq!(p246, Poly::from(&[2, 4, 6]));
+    fn test_mul_poly() {
+        // p = 1 - x
+        let p = Polynomial {
+            coeffs: vec![Scalar::one(), Scalar::one().neg()],
+        };
+        // q = 1 + x
+        let q = Polynomial {
+            coeffs: vec![Scalar::one(), Scalar::one()],
+        };
 
-        let mut p24645 = Poly::from(&[1, 2, 3]);
-        p24645 += &Poly::from(&[1, 2, 3, 4, 5]);
-        assert_eq!(p24645, Poly::from(&[2, 4, 6, 4, 5]));
-
-        let mut p24646 = Poly::from(&[1, 2, 3, 4, 6]);
-        p24646 += &Poly::from(&[1, 2, 3]);
-        assert_eq!(p24646, Poly::from(&[2, 4, 6, 4, 6]));
-    }
-
-    #[test]
-    fn test_poly_sub() {
-        let mut p0 = Poly::from(&[1, 2, 3]);
-        p0 -= &Poly::from(&[1, 2, 3]);
-        assert_eq!(p0, Poly::from(&[0]));
-
-        let mut p003 = Poly::from(&[1, 2, 3]);
-        p003 -= &Poly::from(&[1, 2]);
-        assert_eq!(p003, Poly::from(&[0, 0, 3]));
-    }
-
-    #[test]
-    fn test_poly_mul() {
         assert_eq!(
-            &Poly::from(&[5, 0, 10, 6]) * &Poly::from(&[1, 2, 4]),
-            Poly::from(&[5, 10, 30, 26, 52, 24])
+            p.mul(&q).coeffs,
+            vec![Scalar::one(), Scalar::zero(), Scalar::one().neg()]
+        );
+
+        // add
+        assert_eq!(p.add(&q).coeffs, vec![Scalar::from_u128(2), Scalar::zero()]);
+
+        // poly.mul(scalar)
+        assert_eq!(
+            p.mul(&Scalar::from_u128(5)).coeffs,
+            vec![Scalar::from_u128(5), Scalar::from_u128(5).neg()]
         );
     }
 
     #[test]
-    fn test_div() {
-        fn do_test<F: Field>(n: Poly<F>, d: Poly<F>) {
-            let (q, r) = n.clone() / d.clone();
-            let mut n2 = &q * &d;
-            n2 += &r;
-            assert_eq!(n, n2);
-        }
+    fn lagrange_interpolate() {
+        // aim: p = 1 + 2x + x^2
 
-        do_test(Poly::<Fr>::from(&[1]), Poly::<Fr>::from(&[1, 1]));
-        do_test(Poly::<Fr>::from(&[1, 1]), Poly::<Fr>::from(&[1, 1]));
-        do_test(Poly::<Fr>::from(&[1, 2, 1]), Poly::<Fr>::from(&[1, 1]));
-        do_test(
-            Poly::<Fr>::from(&[1, 2, 1, 2, 5, 8, 1, 9]),
-            Poly::<Fr>::from(&[1, 1, 5, 4]),
-        );
-    }
-
-    #[test]
-    fn test_print() {
-        assert_eq!("x^2+2x+1", format!("{}", Poly::from(&[1, 2, 1])));
-        assert_eq!("x^2+1", format!("{}", Poly::from(&[1, 0, 1])));
-        assert_eq!("x^2", format!("{}", Poly::from(&[0, 0, 1])));
-        assert_eq!("2x^2", format!("{}", Poly::from(&[0, 0, 2])));
-        assert_eq!("-4", format!("{}", Poly::new(vec![-Fr::from(4)])));
-        assert_eq!(
-            "-4x",
-            format!("{}", Poly::new(vec![Fr::zero(), -Fr::from(4)]))
-        );
-        assert_eq!(
-            "-x-2",
-            format!("{}", Poly::new(vec![Fr::from(2).neg(), Fr::from(1).neg()]))
-        );
-        assert_eq!(
-            "x-2",
-            format!("{}", Poly::new(vec![-Fr::from(2), Fr::from(1)]))
-        );
-    }
-
-    #[test]
-    fn test_lagrange_multi() {
-        let points = vec![
-            (Fr::from(12342), Fr::from(22342)),
-            (Fr::from(2234), Fr::from(22222)),
-            (Fr::from(3982394), Fr::from(111114)),
-            (Fr::from(483838), Fr::from(444444)),
+        let domain = vec![
+            Scalar::from_u128(1),
+            Scalar::from_u128(2),
+            Scalar::from_u128(3),
+            Scalar::from_u128(4),
+            Scalar::from_u128(5),
+            Scalar::from_u128(6),
+            Scalar::from_u128(7),
+            Scalar::from_u128(8),
+            Scalar::from_u128(9),
         ];
-        let l = Poly::lagrange(&points);
-        points.iter().for_each(|p| assert_eq!(l.eval(&p.0), p.1));
+        let evals = vec![
+            Scalar::from_u128(4),
+            Scalar::from_u128(9),
+            Scalar::from_u128(10),
+            Scalar::from_u128(19),
+            Scalar::from_u128(24),
+            Scalar::from_u128(31),
+            Scalar::from_u128(40),
+            Scalar::from_u128(51),
+            Scalar::from_u128(64),
+        ];
+
+        let poly = Polynomial::lagrange_interpolate(domain.clone(), evals.clone());
+
+        for (x, y) in domain.iter().zip(evals) {
+            assert_eq!(poly.evaluate(*x), y);
+        }
+        println!("pass");
     }
+
+    // #[test]
+    // fn test_div() {
+    //     // division: 2+3x+x^2 = (x+1)(x+2)
+    //     let coeffs = vec![Scalar::from_u128(2), Scalar::ONE, Scalar::ONE];
+    //     let division = Polynomial::from_coeffs(coeffs);
+    //
+    //     // dividor: 2+x
+    //     let coeffs = vec![Scalar::from_u128(2), Scalar::ONE];
+    //     let dividor = Polynomial::from_coeffs(coeffs);
+    //
+    //     // target:
+    //     //      quotient poly: 1+x
+    //     //      remainder poly: 0
+    //     let coeffs = vec![Scalar::from_u128(2), Scalar::ONE];
+    //     let target_qoutient = Polynomial::from_coeffs(coeffs);
+    //     let target_remainder = Polynomial::zero();
+    //
+    //     // division / dividor = quotient + remainder
+    //     let (actual_qoutient, actual_remainder) = division.div(dividor);
+    //
+    //     assert_eq!(actual_qoutient, target_qoutient);
+    //     assert_eq!(actual_remainder, target_remainder);
+    // }
 }
