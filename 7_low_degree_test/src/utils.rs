@@ -1,3 +1,5 @@
+use bls12_381::Scalar;
+use ff::Field;
 use rand::distributions::{Alphanumeric, DistString};
 use rand_core::OsRng;
 
@@ -16,6 +18,10 @@ pub fn random_chars(k: usize) -> Vec<char> {
     let n = 1 << k;
     let random_code = Alphanumeric.sample_string(&mut OsRng, n);
     random_code.chars().collect::<Vec<char>>()
+}
+pub fn random_scalars(k: usize) -> Vec<Scalar> {
+    let n = 1 << k;
+    (0..n).map(|_| Scalar::random(OsRng)).collect::<Vec<_>>()
 }
 
 #[cfg(test)]

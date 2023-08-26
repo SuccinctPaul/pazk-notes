@@ -12,6 +12,20 @@ pub struct Polynomial {
 }
 
 impl Polynomial {
+    pub fn from_coeffs(coeffs: Vec<Scalar>) -> Self {
+        Self { coeffs }
+    }
+
+    // The degree of the polynomial
+    pub fn degree(&self) -> usize {
+        assert!(self.coeffs.len() > 0);
+        self.coeffs.len() - 1
+    }
+
+    pub fn coeffs(&self) -> Vec<Scalar> {
+        self.coeffs.clone()
+    }
+
     // p(x)=∑y_j⋅L_j(X), where
     // y_j: [a_0, a_1, ..., a_n].
     // basis: L_j(X)=∏(X−x_k)/(x_j−x_k)
