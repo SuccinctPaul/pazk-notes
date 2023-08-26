@@ -5,6 +5,7 @@ pub mod proof;
 use crate::merkle_tree::hasher::{calculate_hash, calculate_parent_hash};
 use crate::merkle_tree::node::TreeNode;
 use crate::merkle_tree::proof::Proof;
+use crate::utils::convert_to_binary;
 use ark_std::log2;
 use std::cmp::Ordering;
 
@@ -12,8 +13,8 @@ use std::cmp::Ordering;
 // and where every internal node holds the hash of the concatenation of the hashes of its children nodes.
 // Note: For convinence, we suppose Merkle tree is a ![complete binary tree](https://www.geeksforgeeks.org/types-of-binary-tree/?ref=lbp)
 //      Degree: 2
-//      Leaf nodes: if tree height is h, so the number of leaf nodes will be `2^h`
-//      Total nodes: A tree of height h has total nodes = 2^(h+1)–1
+//      Leaf nodes: if tree height is h, so the number of leaf nodes will be `2^(h-1)`
+//      Total nodes: A tree of height h has total nodes = 2^h–1
 //      Height of tree: If tree has N nodes, the hight `h=log(N+1)–1=Θ(ln(n))`. From root to leaf: [1,h].
 #[derive(Clone, Debug)]
 pub struct MerkleTree {
@@ -22,6 +23,7 @@ pub struct MerkleTree {
 }
 
 impl MerkleTree {
+    // init and commit
     // Constructs a Merkle Tree from a vector of data.
     // Root = hash_util(left.hash + right.hash)
     pub fn init(values: Vec<char>) -> Self {
@@ -30,9 +32,10 @@ impl MerkleTree {
             "Can't initial MerkleTree from empty vector"
         );
         let leaves_num = values.len();
-        let height: usize = log2(leaves_num) as usize;
-        assert_eq!(1 << height, leaves_num, "It's not a perfect tree");
+        let height: usize = 1 + log2(leaves_num) as usize;
+        assert_eq!(1 << (height - 1), leaves_num, "It's not a perfect tree");
 
+        // lowest level
         let leaves_nodes = values
             .iter()
             .map(|v| TreeNode::new_leaf(*v))
@@ -40,7 +43,7 @@ impl MerkleTree {
 
         // construct tree by leaves.
         let mut cur = leaves_nodes;
-        for i in 0..height {
+        for i in 0..(height - 1) {
             let cur_len = cur.len();
             let parant = (0..(cur_len / 2))
                 .map(|j| {
@@ -59,34 +62,12 @@ impl MerkleTree {
         }
         assert_eq!(cur.len(), 1);
 
-        // while cur.len() > 1 {
-        //     let mut parent = Vec::new();
-        //     while !cur.is_empty() {
-        //         let left = cur.remove(0);
-        //         let right = cur.remove(0);
-        //
-        //         let sum = left.get_hash() + right.get_hash();
-        //         let parent_hash = calculate_hash(&sum);
-        //
-        //         let node = TreeNode::Node {
-        //             hash: parent_hash,
-        //             left: Box::new(left),
-        //             right: Box::new(right),
-        //         };
-        //
-        //         parent.push(node);
-        //     }
-        //
-        //     height += 1;
-        //
-        //     cur = parent;
-        // }
-
         let root = cur.remove(0);
 
         MerkleTree { root, height }
     }
 
+    // commit and open.
     pub fn commit(&self, x: &char) -> Proof {
         let mut values = Vec::with_capacity(self.height - 1);
         let root_hash = self.root.get_hash();
@@ -136,12 +117,12 @@ impl MerkleTree {
 
     // Leaf nodes: if tree height is h, so the number of leaf nodes will be `2^h`
     pub fn leaves_num(&self) -> usize {
-        2 ^ self.height
+        2 ^ (self.height - 1)
     }
 
     // Total nodes: A tree of height h has total nodes = 2^(h+1)–1
     pub fn nodes_num(&self) -> usize {
-        2 ^ (self.height + 1) - 1
+        2 ^ self.height - 1
     }
 }
 
