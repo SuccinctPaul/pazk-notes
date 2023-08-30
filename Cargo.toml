@@ -11,7 +11,6 @@ members = [
     "5_ni_sumcheck",
     "7_low_degree_test",
     "7_Merkle_tree_commtment",
-    "10_uni_sumcheck",
     "10_FRI",
     "10_Brakedown",
     "10_r1cs_IOP",
