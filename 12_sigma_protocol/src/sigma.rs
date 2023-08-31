@@ -1,6 +1,9 @@
 //! Math theory is the ecc Discrete Logarithm problem.
+//!
 //! The protocol prove :
-//!     P holds (h, w) such that h = g^w in G, while V knows h and g.
+//!     P holds (h, w) such that h = g*w in G, while V knows h and g.
+//!
+//! The the curves in Bls12 is additive group. So it's little different with the protocl in book(#184).
 
 use pairing::Engine;
 
