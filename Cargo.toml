@@ -13,7 +13,6 @@ members = [
     "7_Merkle_tree_commtment",
     "10_FRI",
     "10_Brakedown",
-    "10_r1cs_IOP",
     "15_kzg",
 ]
 
