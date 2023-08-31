@@ -25,7 +25,7 @@ In a standard IOP, each special message is a string, and the verifier is given q
 In a polynomial IOP, each special message i specifies a polynomial hi over a finite field F, with degree at most some specified upper bound di.
 
 
-## PIOP succinct argument
+### PIOP succinct argument
 We can obtain a succinct argument via the following three-step design process: 
 
 * First, design a public-coin polynomial IOP for circuit- or R1CS-satisfiability.
@@ -36,15 +36,14 @@ polynomial IOP with a polynomial commitment scheme.
 In fact, all SNARKs covered in this survey are designed via this recipe, with the lone exception of those based on linear PCPs.
 
 
-## univariate sumcheck protocol
-> Reference: https://eprint.iacr.org/2018/828.pdf
+## univariate sumcheck: A RS-encoded IOPP
 
 Univariate sumcheck, an RS-encoded IOPP for testing whether a low-degree univariate polynomial(f(x)) sums to zero on a given subspace H ⊆ F.
 
 If f has degree less than d, then f can be uniquely decomposed into polynomials g, h of degrees less
 than `|H|` and `d−|H|` (respectively) such that `f ≡ g + ZH · h`, where ZH is the vanishing polynomial of
 H. T
-  * The vanish poly - Z_H
+  * The vanishing poly - Z_H
 
   * Lagrange Interapote
   Lagrange's theorem — If H is a subgroup of a group G, then $\displaystyle \left|G\right|=\left[G:H\right]\cdot \left|H\right|$ .
@@ -53,11 +52,6 @@ H. T
 When H is a multiplicative subgroup of order n, it follows from Lagrange’s Theorem in group theory
 that an = 1 for any a ∈ H. Hence, H is precisely the set of n roots of the polynomial X n − 1, i.e.,
 $∏ (X − a) = X n − 1.$
-
-* Lemma 10.2
-  
-* univariate sum-check protocol
-  
 
 
 ## FRI
@@ -115,3 +109,40 @@ and E(u2 ). The relative distance γ of the code is the distance divided by the 
 The code is linear if E is a linear function. That is, E(a·u1+b·u2)=a·E(u1)+b·E(u2) for any messages u1, u2 ∈ Fm and scalars a, b ∈ F.
 
 A classic example of a linear code is the Reed-Solomon code.
+
+
+
+
+
+
+## IOP-based zkSARNK
+Interactive oracle proofs (IOPs) are a multi-round generalization of probabilistically checkable proofs (PCPs) that offer better performance compared to PCPs.
+
+### BCS transformation
+The zkSNARKs can be constructed from IOPs via the BCS transformation.
+
+The BCS transformation uses a cryptographic hash function (modeled as a random oracle) to compile any public-coin IOP into a SNARG that is:
+* transparent (the only global parameter needed to produce/validate proof strings is the hash function);
+* post-quantum (it is secure in the quantum random oracle model);
+* lightweight (no cryptography beyond the hash function is used).
+
+The BCS transformation is described in ![BCS](https://eprint.iacr.org/2016/116), and its post-quantum security is proved in ![CMS](https://eprint.iacr.org/2019/834).
+
+The BCS transformation preserves proof of knowledge: if the underlying IOP is a proof of knowledge, then the resulting SNARG is an argument of knowledge (i.e., a SNARK). 
+Similarly, the BCS transformation preserves zero knowledge: if the underlying IOP is (honest-verifier) zero knowledge then the resulting SNARG is zero knowledge (i.e., a zkSNARG).
+
+The BCS transformation also extends to compile holographic IOPs into preprocessing SNARGs, as described in [COS]. This feature enables SNARGs that provide fast verification for arbitrary computations (and not just structured computations).
+
+
+### IOP for R1CS
+![IOP for R1CS. Source from Aurora-Figure 3](images/Aurora_Figure_3.png)
+
+
+
+
+## Reference
+* paper
+  ![Aurora: Transparent Succinct Arguments for R1CS](https://eprint.iacr.org/2018/828.pdf)
+  
+* IOP-based zkSNARKs
+  https://github.com/scipr-lab/libiop
