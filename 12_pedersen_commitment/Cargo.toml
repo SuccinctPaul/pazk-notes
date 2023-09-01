@@ -12,5 +12,4 @@ pairing = "0.23.0"
 bls12_381 = "0.8.0"
 rand = "0.8.5"
 rand_core = { version = "0.6.4", default-features = false, features = ["std"] }
-rayon = "1.7.0"
-sha3 = "0.10.6"
+
