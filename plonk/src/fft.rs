@@ -1,9 +1,10 @@
 use crate::utils::log2_floor;
 use ff::Field;
 use group::prime::PrimeCurve;
+use group::Group;
 
-/// raw best_fft
-pub fn best_fft_cpu<Scalar: Field, G: PrimeCurve>(a: &mut [G], omega: Scalar, log_n: u32) {
+// param: Point(Affine or Projective), Scalar.
+pub fn best_fft<G: Group>(a: &mut [G], omega: G::Scalar, log_n: u32) {
     fn bitreverse(mut n: usize, l: usize) -> usize {
         let mut r = 0;
         for _ in 0..l {
@@ -27,7 +28,7 @@ pub fn best_fft_cpu<Scalar: Field, G: PrimeCurve>(a: &mut [G], omega: Scalar, lo
 
     // precompute twiddle factors
     let twiddles: Vec<_> = (0..(n / 2) as usize)
-        .scan(Scalar::ONE, |w, _| {
+        .scan(G::Scalar::ONE, |w, _| {
             let tw = *w;
             *w *= &omega;
             Some(tw)
@@ -54,10 +55,10 @@ pub fn best_fft_cpu<Scalar: Field, G: PrimeCurve>(a: &mut [G], omega: Scalar, lo
                     .enumerate()
                     .for_each(|(i, (a, b))| {
                         let mut t = *b;
-                        t = t * &twiddles[(i + 1) * twiddle_chunk];
+                        t = t.mul(&twiddles[(i + 1) * twiddle_chunk]);
                         *b = *a;
-                        *a = a + &t;
-                        *b = b - &t;
+                        a.add_assign(&t);
+                        b.sub_assign(&t);
                     });
             });
             chunk *= 2;
@@ -69,11 +70,11 @@ pub fn best_fft_cpu<Scalar: Field, G: PrimeCurve>(a: &mut [G], omega: Scalar, lo
 }
 
 /// This perform recursive butterfly arithmetic
-pub fn recursive_butterfly_arithmetic<Scalar: Field, G: PrimeCurve>(
+fn recursive_butterfly_arithmetic<G: Group>(
     a: &mut [G],
     n: usize,
     twiddle_chunk: usize,
-    twiddles: &[Scalar],
+    twiddles: &[G::Scalar],
 ) {
     if n == 2 {
         let t = a[1];
@@ -110,19 +111,18 @@ pub fn recursive_butterfly_arithmetic<Scalar: Field, G: PrimeCurve>(
 
 #[cfg(test)]
 mod test {
-    use bls12_381::Scalar;
-    use ff::Field;
+    use super::*;
+    use crate::test::gen_points;
+    use bls12_381::{Bls12, Scalar};
     use rand_core::OsRng;
 
     #[test]
     fn test_fft() {
-        let k: u32 = 5;
+        let k = 5;
 
-        let mut a = (0..(1 << k))
-            .map(|_| Scalar::random(OsRng))
-            .collect::<Vec<_>>();
+        let mut a = gen_points::<Bls12>(k);
         let omega = Scalar::random(OsRng); // would be weird if this mattered
 
-        best_fft(&mut a, omega, k);
+        best_fft(&mut a, omega, k as u32);
     }
 }
