@@ -13,6 +13,8 @@ pub struct ParamKzg<E: Engine> {
     pub(crate) n: usize,
     pub pow_tau_g1: Vec<E::G1>,
     pub pow_tau_g2: Vec<E::G2>,
+    pub g1: E::G1,
+    pub g2: E::G2,
 }
 
 impl<E: Engine + Debug> ParamKzg<E>
@@ -40,22 +42,20 @@ where
             .collect();
 
         // obtain [s]1
-        let pow_tau_g1: Vec<E::G1> = powers_of_tau
-            .iter()
-            .map(|tau_pow| E::G1Affine::generator() * tau_pow)
-            .collect();
+        let g1 = E::G1Affine::generator();
+        let pow_tau_g1: Vec<E::G1> = powers_of_tau.iter().map(|tau_pow| g1 * tau_pow).collect();
 
         // obtain [s]2
-        let pow_tau_g2: Vec<E::G2> = powers_of_tau
-            .iter()
-            .map(|tau_pow| E::G2Affine::generator() * tau_pow)
-            .collect();
+        let g2 = E::G2Affine::generator();
+        let pow_tau_g2: Vec<E::G2> = powers_of_tau.iter().map(|tau_pow| g2 * tau_pow).collect();
 
         Self {
             k,
             n,
             pow_tau_g1,
             pow_tau_g2,
+            g1,
+            g2,
         }
     }
 

@@ -1,8 +1,8 @@
+mod circuit;
 mod fft;
 mod kzg;
 mod msm;
-// mod plonk;
-mod circuit;
+mod plonk;
 mod poly;
 mod test;
 mod transcript;

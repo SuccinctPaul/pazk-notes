@@ -1,6 +1,6 @@
-mod param;
-mod prover;
-mod verifier;
+pub mod param;
+pub mod prover;
+pub mod verifier;
 
 use bls12_381::Scalar;
 use ff::Field;

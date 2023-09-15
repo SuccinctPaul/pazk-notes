@@ -1,12 +1,11 @@
-use pairing::Engine;
 use crate::kzg::KZGProof;
+use pairing::Engine;
 
 mod prover;
 mod verifier;
 
 #[derive(Debug, PartialEq)]
 pub struct PlonkProof<E: Engine> {
-
     // $a(s)$
     pub a_s: E::G1,
     // $b(s)$
@@ -41,4 +40,4 @@ pub struct PlonkProof<E: Engine> {
     pub z_omega_z: E::HF,
 
     kzg_proof: KZGProof<E>,
-    }
+}

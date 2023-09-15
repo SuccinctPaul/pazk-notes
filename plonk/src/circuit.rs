@@ -4,14 +4,14 @@ use pairing::Engine;
 // Represents the minimal parameters that determine a `ConstraintSystem`.
 pub struct ConstraintSystem<F: PrimeField> {
     // witness.
-    a: Vec<F>,
-    b: Vec<F>,
-    c: Vec<F>,
-    q_l: Vec<F>,
-    q_r: Vec<F>,
-    q_m: Vec<F>,
-    q_o: Vec<F>,
-    q_c: Vec<F>,
+    pub a: Vec<F>,
+    pub b: Vec<F>,
+    pub c: Vec<F>,
+    pub q_l: Vec<F>,
+    pub q_r: Vec<F>,
+    pub q_m: Vec<F>,
+    pub q_o: Vec<F>,
+    pub q_c: Vec<F>,
     pub pub_gate_position: Vec<usize>,
     pub pub_gate_value: Vec<F>,
 }
