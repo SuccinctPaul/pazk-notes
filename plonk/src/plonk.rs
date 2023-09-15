@@ -1,4 +1,8 @@
-use crate::kzg::KZGProof;
+//! The plonkish prove system is consisted of:
+//! 1. constrains system: arithmetic and permutation constraints
+//! 2. custome gate
+//! 3. lookup gate
+
 use pairing::Engine;
 
 mod prover;
@@ -25,19 +29,19 @@ pub struct PlonkProof<E: Engine> {
     // $w_{\mathfrak{Z}\omega}(s)$
     pub w_z_omega_s: E::G1,
     // $\bar a$
-    pub a_z: E::HF,
+    pub a_z: E::G1,
     // $\bar b$
-    pub b_z: E::HF,
+    pub b_z: E::G1,
     // $\bar c$
-    pub c_z: E::HF,
+    pub c_z: E::G1,
     // $\overline {s_{\sigma_1}}$
-    pub s_sigma_1_z: E::HF,
+    pub s_sigma_1_z: E::G1,
     // $\overline {s_{\sigma_1}}$
-    pub s_sigma_2_z: E::HF,
+    pub s_sigma_2_z: E::G1,
     // $\overline r$
-    pub r_z: E::HF,
+    pub r_z: E::G1,
     // see $\overline {z_\omega}$
-    pub z_omega_z: E::HF,
+    pub z_omega_z: E::G1,
 
     kzg_proof: KZGProof<E>,
 }

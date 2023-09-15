@@ -1,7 +1,8 @@
-use crate::msm::small_multiexp;
-use crate::poly::Polynomial;
+use crate::math::msm::small_multiexp;
+use crate::math::poly::Polynomial;
 use ff::{Field, PrimeField};
 use group::prime::PrimeCurveAffine;
+use group::Group;
 use pairing::Engine;
 use rand_core::OsRng;
 use std::fmt::Debug;
@@ -12,9 +13,12 @@ pub struct ParamKzg<E: Engine> {
     pub(crate) k: usize,
     pub(crate) n: usize,
     pub pow_tau_g1: Vec<E::G1>,
-    pub pow_tau_g2: Vec<E::G2>,
-    pub g1: E::G1,
+    // pub pow_tau_g2: Vec<E::G2>,
+    pub g1: E::G2,
     pub g2: E::G2,
+    pub g2_s: E::G2,
+    pub root_of_units: Vec<E::Fr>,
+    // todo calcualte domain(H), poly z(x).
 }
 
 impl<E: Engine + Debug> ParamKzg<E>
@@ -42,20 +46,25 @@ where
             .collect();
 
         // obtain [s]1
-        let g1 = E::G1Affine::generator();
+        let g1 = E::G1::generator();
         let pow_tau_g1: Vec<E::G1> = powers_of_tau.iter().map(|tau_pow| g1 * tau_pow).collect();
 
         // obtain [s]2
-        let g2 = E::G2Affine::generator();
-        let pow_tau_g2: Vec<E::G2> = powers_of_tau.iter().map(|tau_pow| g2 * tau_pow).collect();
+        let g2 = E::G2::generator();
+        // let pow_tau_g2: Vec<E::G2> = powers_of_tau.iter().map(|tau_pow| g2 * tau_pow).collect();
+
+        let g2_s = tau * g2;
+        // todo add root of units
 
         Self {
             k,
             n,
             pow_tau_g1,
-            pow_tau_g2,
+            // pow_tau_g2,
             g1,
             g2,
+            g2_s,
+            root_of_units: vec![],
         }
     }
 

@@ -20,7 +20,7 @@ pub struct Layer {
     pub var_num: usize, // 2^var_num = gates.len()
 }
 
-// Configure Circuit Constraints. We assume circuit is layered one, whose gates have fan-in-2 and fan-out-1.
+// Configure Circuit Constraints. We assume constraint_system is layered one, whose gates have fan-in-2 and fan-out-1.
 #[derive(Clone, Default)]
 pub struct CircuitConfig {
     pub layers: Vec<Layer>,   // from layer 0 to d-1.
@@ -112,14 +112,14 @@ impl CircuitConfig {
         (result, layer_i_plus_1.clone())
     }
 
-    //  A layered arithmetic circuit C with S gates, depth d, and fan-in two (C may have more than one output gate).
+    //  A layered math constraint_system C with S gates, depth d, and fan-in two (C may have more than one output gate).
     //  Number of layers: 0-d,  0 is output layer, d being the input layer.
-    //  Let Si denote the number of gates at layer i of the circuit C.
+    //  Let Si denote the number of gates at layer i of the constraint_system C.
     //
-    //  As wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C, so that we use that here.
+    //  As wiring predicate(addi, multi) depend only on the constraint_system C and not on the input x to C, so that we use that here.
     //
     //
-    // Obtain the addi and multi mpoly from the circuit.
+    // Obtain the addi and multi mpoly from the constraint_system.
     // eg:  mult0 is the function defined over domain {0,1}×{0,1}2 ×{0,1}2 as follows. mult0 evaluates
     //      to 1 on the following two inputs: (0,(0,0),(0,1)) and (1,(1,0),(1,1)). On all other inputs,
     //      mult0 evaluates to zero.
@@ -218,7 +218,7 @@ mod test {
         ];
 
         let circuit = simple_circuit();
-        // evaluate the circuit with input
+        // evaluate the constraint_system with input
         let actual = circuit.evaluate(&inputs);
 
         let expected = vec![Scalar::from_u128(4), Scalar::from_u128(32)];

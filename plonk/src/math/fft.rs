@@ -69,7 +69,7 @@ pub fn best_fft<G: Group>(a: &mut [G], omega: G::Scalar, log_n: u32) {
     }
 }
 
-/// This perform recursive butterfly arithmetic
+/// This perform recursive butterfly math
 fn recursive_butterfly_arithmetic<G: Group>(
     a: &mut [G],
     n: usize,

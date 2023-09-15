@@ -1,8 +1,8 @@
 // Verifies that `points` exists in `proof`
 
-use crate::kzg::param::ParamKzg;
-use crate::kzg::KZGProof;
-use crate::poly::Polynomial;
+use crate::math::poly::Polynomial;
+use crate::pcs::kzg::param::ParamKzg;
+use crate::pcs::kzg::KZGProof;
 use crate::transcript::default::Keccak256Transcript;
 use crate::transcript::Transcript;
 use bls12_381::Scalar;

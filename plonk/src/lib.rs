@@ -1,9 +1,8 @@
-mod circuit;
-mod fft;
-mod kzg;
-mod msm;
-mod plonk;
-mod poly;
-mod test;
-mod transcript;
-mod utils;
+pub mod math;
+// mod plonk;
+pub mod circuit;
+pub mod constraint_system;
+pub mod pcs;
+pub mod test;
+pub mod transcript;
+pub mod utils;

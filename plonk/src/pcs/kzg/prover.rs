@@ -1,6 +1,6 @@
-use crate::kzg::param::ParamKzg;
-use crate::kzg::KZGProof;
-use crate::poly::Polynomial;
+use crate::math::poly::Polynomial;
+use crate::pcs::kzg::param::ParamKzg;
+use crate::pcs::kzg::KZGProof;
 use crate::transcript::default::Keccak256Transcript;
 use crate::transcript::Transcript;
 use ff::{BitViewSized, Field, PrimeField};
@@ -69,10 +69,10 @@ impl<E: Engine> Prover<E> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::kzg::param::ParamKzg;
-    use crate::kzg::prover::Prover;
-    use crate::kzg::verifier::Verifier;
-    use crate::poly::Polynomial;
+    use crate::math::poly::Polynomial;
+    use crate::pcs::kzg::param::ParamKzg;
+    use crate::pcs::kzg::prover::Prover;
+    use crate::pcs::kzg::verifier::Verifier;
     use bls12_381::{Bls12, Scalar};
     use ff::{Field, PrimeField};
 

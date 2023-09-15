@@ -1,5 +1,5 @@
-use crate::circuit::ConstraintSystem;
-use crate::kzg::param::ParamKzg;
+use crate::constraints::ConstraintSystem;
+use crate::pcs::kzg::param::ParamKzg;
 use crate::transcript::default::Keccak256Transcript;
 use ff::PrimeField;
 use pairing::Engine;
@@ -9,11 +9,17 @@ pub struct Prover<E: Engine> {
     cs: ConstraintSystem<E::Fr>, // constraint system
     winess: Vec<E::Fr>,          // private inputs
     constants: Vec<E::Fr>,       // public inputs
+    roots: Vec<E::Fr>,
+    ConcreteCircuit: Circuit<E::Fr>,
 }
 
 impl<E: Engine> Prover<E> {
     pub fn prove(&self) {
         let mut transcript = Keccak256Transcript::default();
+
+
+        self.ConcreteCircuit: Circuit<Scheme::Scalar>;
+
     }
 
     // Round 1:

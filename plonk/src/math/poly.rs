@@ -1,4 +1,3 @@
-use bls12_381::Scalar;
 use ff::{BatchInvert, Field};
 use rand_core::OsRng;
 use rayon::{current_num_threads, scope};
@@ -257,6 +256,7 @@ impl<F: Field> std::ops::Add<&Polynomial<F>> for &Polynomial<F> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use bls12_381::Scalar;
     use ff::PrimeField;
     use std::ops::{Add, Div, Mul};
 

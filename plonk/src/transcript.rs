@@ -3,7 +3,7 @@
 use bls12_381::Scalar;
 use ff::{Field, PrimeField};
 
-use crate::poly::Polynomial;
+use crate::math::poly::Polynomial;
 pub mod default;
 mod poseidon;
 

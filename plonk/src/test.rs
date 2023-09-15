@@ -1,4 +1,3 @@
-use ark_std::iterable::Iterable;
 use ff::Field;
 use group::prime::PrimeCurveAffine;
 use pairing::Engine;

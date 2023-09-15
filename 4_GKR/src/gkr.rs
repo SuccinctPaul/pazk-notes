@@ -1,5 +1,5 @@
 // Description of the GKR protocol,
-// when applied to a layered arithmetic circuit C of depth d and fan-in two on input x ∈ Fn.
+// when applied to a layered math constraint_system C of depth d and fan-in two on input x ∈ Fn.
 // Throughout, ki denotes log2(Si) where Si is the number of gates at layer i of C.
 
 use crate::arithmetic::layered_circuit::CircuitConfig;
@@ -19,7 +19,7 @@ pub struct GKR {
 }
 
 impl GKR {
-    // Init with layer-circuit
+    // Init with layer-constraint_system
     pub fn init(config: CircuitConfig) -> Self {
         let d = config.depth;
         let input_var_num = config.input_var_num;
@@ -115,7 +115,7 @@ mod test {
         ];
 
         let config = simple_circuit();
-        // evaluate the circuit with input
+        // evaluate the constraint_system with input
         let mut gkr = GKR::init(config);
         gkr.run_protocol(&inputs);
     }
