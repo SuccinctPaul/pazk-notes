@@ -8,6 +8,8 @@ pub mod default;
 mod poseidon;
 
 pub trait Transcript<F: PrimeField> {
+    fn new() -> Self;
+
     fn append(&mut self, new_data: &[u8]);
 
     fn challenge(&mut self) -> F;

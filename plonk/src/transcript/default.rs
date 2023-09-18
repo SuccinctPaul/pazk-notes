@@ -11,6 +11,13 @@ pub struct Keccak256Transcript<F: PrimeField> {
 }
 
 impl<F: PrimeField> Transcript<F> for Keccak256Transcript<F> {
+    fn new() -> Self {
+        Self {
+            hasher: Keccak256::new(),
+            _marker: Default::default(),
+        }
+    }
+
     fn append(&mut self, new_data: &[u8]) {
         self.hasher.update(&mut new_data.to_owned());
     }
@@ -25,14 +32,5 @@ impl<F: PrimeField> Transcript<F> for Keccak256Transcript<F> {
         self.hasher.update(result_hash);
         let sum = result_hash.to_vec().iter().map(|&b| b as u128).sum();
         F::from_u128(sum)
-    }
-}
-
-impl<F: PrimeField> Default for Keccak256Transcript<F> {
-    fn default() -> Self {
-        Self {
-            hasher: Keccak256::new(),
-            _marker: Default::default(),
-        }
     }
 }

@@ -40,3 +40,11 @@ impl<F: PrimeField> From<GateType<F>> for PlonkGate<F> {
         };
     }
 }
+
+// copy relation is defined with
+// Tag specifies the permtated cell. which identified with column_name + index (start from 0)
+pub enum CopyTag {
+    a(usize),
+    b(usize),
+    c(usize),
+}

@@ -1,8 +1,9 @@
 //! The plonkish prove system is consisted of:
 //! 1. constrains system: arithmetic and permutation constraints
 //! 2. custome gate
-//! 3. lookup gate
+//! 3. lookup gate(todo)
 
+use crate::pcs::kzg::KZGProof;
 use pairing::Engine;
 
 mod prover;

@@ -3,12 +3,13 @@
 //!     (q_l * a) + (q_r * b) + (q_o * c) + (q_m * a * b) + q_c = 0
 //! 2. permutation constraints
 
-mod witness;
-
+use crate::circuit::gate::CopyTag;
+use crate::circuit::CircuitConfig;
 use ff::PrimeField;
 use pairing::Engine;
 
 // Represents the minimal parameters that determine a `ConstraintSystem`.
+#[derive(Default)]
 pub struct ConstraintSystem<F: PrimeField> {
     // witness columns
     pub a: Vec<F>,
@@ -21,12 +22,25 @@ pub struct ConstraintSystem<F: PrimeField> {
     pub q_o: Vec<F>,
     pub q_c: Vec<F>,
     // copy constraint_system columns
-    // pub c_a: Vec<CopyOf>,
-    // pub c_b: Vec<CopyOf>,
-    // pub c_c: Vec<CopyOf>,
+    pub c_a: Vec<CopyTag>,
+    pub c_b: Vec<CopyTag>,
+    pub c_c: Vec<CopyTag>,
+    // param
+    pub k: usize,
 }
 
 impl<F: PrimeField> ConstraintSystem<F> {
+    pub fn new(k: usize, config: CircuitConfig<F>) -> Self<F> {
+        let n = 1 << k;
+
+        // init the gate values.
+
+        Self {
+            k,
+            ..Self::default()
+        }
+    }
+
     fn evaluate(&self) {
         for (((ai, bi), ci), ((((q_l, q_r), q_m), q_o), q_c)) in
             self.a.iter().zip(self.b.iter()).zip(self.c.iter()).zip(
