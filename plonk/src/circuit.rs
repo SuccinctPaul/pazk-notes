@@ -1,4 +1,4 @@
-use crate::circuit::gate::{Gate, GateType};
+use crate::circuit::gate::Gate;
 use crate::circuit::witness::Assigments;
 use crate::constraint_system::ConstraintSystem;
 use ff::PrimeField;
@@ -17,6 +17,6 @@ pub trait Circuit<F: PrimeField> {
 }
 
 pub struct CircuitConfig<F: PrimeField> {
-    gates: Vec<GateType<F>>,
+    gates: Vec<Gate<F>>,
     // copy_constraints: (Vec<CopyOf>, Vec<CopyOf>, Vec<CopyOf>),
 }

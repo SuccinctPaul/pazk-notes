@@ -21,37 +21,29 @@ pub struct ConstraintSystem<F: PrimeField> {
     pub q_o: Vec<F>,
     pub q_c: Vec<F>,
     // copy constraint_system columns
-    pub c_a: Vec<CopyOf>,
-    pub c_b: Vec<CopyOf>,
-    pub c_c: Vec<CopyOf>,
+    // pub c_a: Vec<CopyOf>,
+    // pub c_b: Vec<CopyOf>,
+    // pub c_c: Vec<CopyOf>,
 }
 
 impl<F: PrimeField> ConstraintSystem<F> {
-    pub fn add_constraint(&mut self, a: &F, op: CircuitOps, b: &F, equals_c: &F) {
-        // can we split this from there. Which means make config and synthysis as different function.
-
-        // add to constraint_system.
-        // self.a.push(a);
-        // self.b.push(b);
-        // self.c.push(equals_c);
-
-        // add contraints.
-        let (q_l, q_r, q_m, q_o, q_c) = match op {
-            CircuitOps::Add => (F::ONE, F::ONE, F::ZERO, F::ONE.neg(), F::ZERO),
-            CircuitOps::Mul => (F::ZERO, F::ZERO, F::ONE, F::ONE.neg(), F::ZERO),
-            CircuitOps::Const => (F::ZERO, F::ONE, F::ZERO, F::ZERO, F::ONE.neg() * equals_c),
-            CircuitOps::PublicInput => {
-                // self.pub_gate_position.push(self.q_r.len());
-                // self.pub_gate_value.push(F::from(b.parse::<i32>().unwrap()));
-
-                (F::ZERO, F::ONE, F::ZERO, F::ZERO, F::ZERO)
-            }
-            _ => panic!(),
-        };
-        self.q_l.push(q_l);
-        self.q_r.push(q_r);
-        self.q_m.push(q_m);
-        self.q_o.push(q_o);
-        self.q_c.push(q_c);
+    fn evaluate(&self) {
+        for (((ai, bi), ci), ((((q_l, q_r), q_m), q_o), q_c)) in
+            self.a.iter().zip(self.b.iter()).zip(self.c.iter()).zip(
+                self.q_l
+                    .iter()
+                    .zip(self.q_r.iter())
+                    .zip(self.q_m.into_iter())
+                    .zip(self.q_o.iter())
+                    .zip(self.q_c.iter()),
+            )
+        {
+            // arithmetic constraint
+            assert_eq!(
+                *ai * q_l + *bi * q_r + *ci * q_o + *ai * bi * q_m + q_c,
+                F::ZERO,
+                "arithmetic constraint meet wrong"
+            )
+        }
     }
 }
