@@ -9,8 +9,15 @@ use pairing::Engine;
 mod prover;
 mod verifier;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct PlonkProof<E: Engine> {
+    // wire poly commitment
+    cm_a: E::G1,
+    cm_b: E::G1,
+    cm_c: E::G1,
+    // permutation poly commitment
+    cm_z: E::G1,
+
     // $a(s)$
     pub a_s: E::G1,
     // $b(s)$
@@ -29,6 +36,8 @@ pub struct PlonkProof<E: Engine> {
     pub w_z_s: E::G1,
     // $w_{\mathfrak{Z}\omega}(s)$
     pub w_z_omega_s: E::G1,
+
+    // evaluations
     // $\bar a$
     pub a_z: E::G1,
     // $\bar b$
@@ -40,7 +49,7 @@ pub struct PlonkProof<E: Engine> {
     // $\overline {s_{\sigma_1}}$
     pub s_sigma_2_z: E::G1,
     // $\overline r$
-    pub r_z: E::G1,
+    // pub r_z: E::G1,
     // see $\overline {z_\omega}$
     pub z_omega_z: E::G1,
 
