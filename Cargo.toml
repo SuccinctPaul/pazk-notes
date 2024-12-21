@@ -11,6 +11,7 @@ members = [
     "5_ni_sumcheck",
     "7_low_degree_test",
     "7_Merkle_tree_commtment",
+    "10_r1cs_IOP",
     "12_sigma_protocol",
     "12_pedersen_commitment",
     "15_kzg",
