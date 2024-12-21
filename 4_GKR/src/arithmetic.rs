@@ -1,5 +1,5 @@
 // For each layer:
-// Let Si denote the number of gates at layer i of the circuit C. Number the gates at layer i from 0 to Si − 1.
+// Let Si denote the number of gates at layer i of the constraint_system C. Number the gates at layer i from 0 to Si − 1.
 // Assume Si is a power of 2 and let $Si = 2^{k_i} $.
 //
 // Witness
@@ -21,7 +21,7 @@
 //
 //      Let \widetilde{add_i} and \widetilde{mult_i} denote the multilinear extensions of addi and multi.
 //
-//  NOTE: wiring predicate(addi, multi) depend only on the circuit C and not on the input x to C
+//  NOTE: wiring predicate(addi, multi) depend only on the constraint_system C and not on the input x to C
 
 pub mod layered_circuit;
 
