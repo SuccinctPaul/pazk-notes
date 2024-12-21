@@ -10,7 +10,7 @@
 
 
 
-## preliminaries
+## Preliminaries
 ### Circuit-SAT
 > arithmetic circuit satisfiability problem (aka. circuit-SAT):
 
@@ -43,10 +43,6 @@ for any desired r of the verifier’s choosing, and the prover is effectively fo
 determined at the time of the original commitment. In particular, the prover is unable to choose the polynomial w ̃ to 
 depend on the query point r, at least not without breaking the computational assumption on which security of the commitment 
 scheme is based.
-
-
-### Merkle tree
-
 
 
 ## Arguments of Knowledge and SNARKs
@@ -100,8 +96,6 @@ Merkle Trees be used to design a string commitment scheme, One obtains a string-
 ### low-degree tests
 Low degree testing refers to the problem of deciding whether a given function is a polynomial of some bounded degree, 
 by making only a small number of queries to the function. It's a central tool in the theory of probabilistic proofs
-
-
 
 ## Reference
 [Low Degree Testing-Starkware](https://medium.com/starkware/low-degree-testing-f7614f5172db#:~:text=L%20ow%20degree%20testing%20refers%20to%20the%20problem,central%20tool%20in%20the%20theory%20of%20probabilistic%20proofs.)
